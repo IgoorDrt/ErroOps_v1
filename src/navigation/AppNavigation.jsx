@@ -23,7 +23,11 @@ import CommunityScreen from "../screens/CommunityScreen";
 import EmpresaScreen from "../screens/EmpresaScreen";
 import ResetPassword from "../screens/ResetPasswordScreen";
 import SearchChatScreen from "../screens/SearchChatScreen"; // Importando a tela
-
+import AdminMenuScreen from "../screens/PainelAdmScreen";
+import UserAdminScreen from "../screens/UserAdminScreen";
+import ControleErroScreen from "../screens/ControleErroScreen";
+import ControleComuScreen from "../screens/ControleComuScreen";
+import PostagemScreen from "../screens/PostagemScreen";
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -127,6 +131,31 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PostagemScreen"
+          component={PostagemScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PainelAdm"
+          component={AdminMenuScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="UserAdminScreen"
+          component={UserAdminScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ControleErroScreen"
+          component={ControleErroScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="ControleComuScreen"
+          component={ControleComuScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

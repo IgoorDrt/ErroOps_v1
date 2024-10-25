@@ -1,10 +1,10 @@
-// screens/AdminScreen.js
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // Biblioteca de ícones para a flecha
 import { db } from '../config/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 
-const ControleErroScreen = () => {
+const ControleErroScreen = ({ navigation }) => {
   const [errors, setErrors] = useState([]);
   const [newError, setNewError] = useState({
     exemplo: '',
@@ -49,46 +49,51 @@ const ControleErroScreen = () => {
   };
 
   return (
-    
-
-
     <View style={styles.container}>
-      <Text>Gerenciamento de Erros</Text>
-      <Button
-        title="Voltar para o Menu de Administração"
-        onPress={() => navigation.navigate('AdminMenuScreen')}
-      />
+      {/* Flecha para voltar ao Menu de Administração */}
+      <TouchableOpacity onPress={() => navigation.navigate('PainelAdm')} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={24} color="#8a0b07" />
+      </TouchableOpacity>
+
+      <Text style={styles.title}>Gerenciamento de Erros</Text>
+
       {/* Inputs para os campos do erro */}
       <TextInput
         style={styles.input}
         placeholder="Exemplo"
+        placeholderTextColor="#000"
         value={newError.exemplo}
         onChangeText={(text) => setNewError({ ...newError, exemplo: text })}
       />
       <TextInput
         style={styles.input}
         placeholder="Info"
+        placeholderTextColor="#000"
         value={newError.info}
         onChangeText={(text) => setNewError({ ...newError, info: text })}
       />
       <TextInput
         style={styles.input}
         placeholder="Nome"
+        placeholderTextColor="#000"
         value={newError.nome}
         onChangeText={(text) => setNewError({ ...newError, nome: text })}
       />
       <TextInput
         style={styles.input}
         placeholder="Solução"
+        placeholderTextColor="#000"
         value={newError.solucao}
         onChangeText={(text) => setNewError({ ...newError, solucao: text })}
       />
 
       {/* Botão para adicionar ou atualizar */}
-      <Button
-        title={selectedError ? "Atualizar Erro" : "Adicionar Erro"}
+      <TouchableOpacity
+        style={styles.button}
         onPress={selectedError ? handleUpdateError : handleAddError}
-      />
+      >
+        <Text style={styles.buttonText}>{selectedError ? "Atualizar Erro" : "Adicionar Erro"}</Text>
+      </TouchableOpacity>
 
       {/* Lista de erros */}
       <FlatList
@@ -96,12 +101,22 @@ const ControleErroScreen = () => {
         keyExtractor={error => error.id}
         renderItem={({ item }) => (
           <View style={styles.errorItem}>
-            <Text>Nome: {item.nome}</Text>
-            <Text>Exemplo: {item.exemplo}</Text>
-            <Text>Info: {item.info}</Text>
-            <Text>Solução: {item.solucao}</Text>
-            <Button title="Editar" onPress={() => { setNewError(item); setSelectedError(item); }} />
-            <Button title="Deletar" onPress={() => handleDeleteError(item.id)} />
+            <Text style={styles.errorText}>Nome: {item.nome}</Text>
+            <Text style={styles.errorText}>Exemplo: {item.exemplo}</Text>
+            <Text style={styles.errorText}>Info: {item.info}</Text>
+            <Text style={styles.errorText}>Solução: {item.solucao}</Text>
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={() => { setNewError(item); setSelectedError(item); }}
+            >
+              <Text style={styles.buttonText}>Editar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.deleteButton}
+              onPress={() => handleDeleteError(item.id)}
+            >
+              <Text style={styles.buttonText}>Deletar</Text>
+            </TouchableOpacity>
           </View>
         )}
       />
@@ -110,9 +125,16 @@ const ControleErroScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
-  input: { borderWidth: 1, padding: 8, marginBottom: 16, borderRadius: 4 },
-  errorItem: { padding: 8, marginVertical: 4, borderWidth: 1, borderRadius: 4, backgroundColor: '#f9f9f9' },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  backButton: { marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#8a0b07', textAlign: 'center', marginBottom: 16 },
+  input: { borderWidth: 1, borderColor: '#8a0b07', padding: 12, marginBottom: 16, borderRadius: 4, color: '#000' },
+  button: { backgroundColor: '#8a0b07', padding: 12, borderRadius: 8, alignItems: 'center', marginBottom: 16 },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
+  errorItem: { padding: 16, marginVertical: 8, borderWidth: 1, borderRadius: 8, borderColor: '#8a0b07', backgroundColor: '#f9f9f9' },
+  errorText: { color: '#000', marginBottom: 4 },
+  editButton: { backgroundColor: '#8a0b07', padding: 8, borderRadius: 4, marginBottom: 4 },
+  deleteButton: { backgroundColor: '#8a0b07', padding: 8, borderRadius: 4 }
 });
 
 export default ControleErroScreen;
