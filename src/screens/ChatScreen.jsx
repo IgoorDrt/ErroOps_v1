@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, FlatList, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, FlatList, Text, Image, StyleSheet } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
@@ -127,25 +129,60 @@ const ChatScreen = ({ route, navigation }) => {
     });
   };
 
-  const sendMessage = async () => {
-    if (newMessage.trim() && userId) {
+  const handleSelectImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      await sendMessage(result.uri, 'image');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      await sendMessage(result.uri, 'image');
+    }
+  };
+
+  const handleSelectDocument = async () => {
+    let result = await DocumentPicker.getDocumentAsync({
+      type: 'application/*',
+    });
+
+    if (result.type === 'success') {
+      await sendMessage(result.uri, 'document');
+    }
+  };
+
+  const sendMessage = async (content, type = 'text') => {
+    if ((content || newMessage.trim()) && userId) {
       const chatId = getChatId(userId, otherUserId);
       const messagesRef = collection(db, 'chats', chatId, 'messages');
 
       try {
         await addDoc(messagesRef, {
-          text: newMessage,
+          text: type === 'text' ? newMessage : '',
+          imageUrl: type === 'image' ? content : '',
+          documentUrl: type === 'document' ? content : '',
           senderId: userId,
           timestamp: serverTimestamp(),
           status: 'sent',
+          type,
         });
-
         setNewMessage('');
       } catch (error) {
         console.error("Erro ao enviar a mensagem: ", error);
       }
-    } else {
-      console.warn("Mensagem ou ID do usuário não estão definidos.");
     }
   };
 
@@ -173,7 +210,7 @@ const ChatScreen = ({ route, navigation }) => {
           <Text style={styles.timestamp}>
             {item.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
-          {isSender && renderMessageStatus(item.status)} {/* Verifica o status para o remetente */}
+          {isSender && renderMessageStatus(item.status)}
         </View>
       </View>
     );
@@ -213,13 +250,21 @@ const ChatScreen = ({ route, navigation }) => {
       />
 
       <View style={styles.inputContainer}>
+        <TouchableOpacity onPress={handleSelectDocument} style={styles.iconButton}>
+          <Ionicons name="attach" size={24} color="#8a0b07" />
+        </TouchableOpacity>
         <TextInput
           placeholder="Digite uma mensagem"
           value={newMessage}
           onChangeText={setNewMessage}
           style={styles.input}
         />
-        <Button title="Enviar" onPress={sendMessage} color="#8a0b07" />
+        <TouchableOpacity onPress={handleTakePhoto} style={styles.iconButton}>
+          <Ionicons name="camera" size={24} color="#8a0b07" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => sendMessage(newMessage, 'text')} style={styles.sendButton}>
+          <Text style={styles.sendButtonText}>ENVIAR</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -296,19 +341,34 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     padding: 10,
     borderTopWidth: 1,
     borderColor: '#ddd',
     backgroundColor: '#fff',
+  },
+  iconButton: {
+    padding: 5,
   },
   input: {
     flex: 1,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 25,
-    padding: 10,
-    marginRight: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginHorizontal: 10,
     backgroundColor: '#f9f9f9',
+  },
+  sendButton: {
+    backgroundColor: '#8a0b07',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+  },
+  sendButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   errorMessage: {
     color: 'red',
