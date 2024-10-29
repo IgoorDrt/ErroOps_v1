@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ const ProfileScreen = () => {
   const [email, setEmail] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const user = auth.currentUser;
   const navigation = useNavigation();
 
@@ -30,17 +30,19 @@ const ProfileScreen = () => {
 
   const updateProfile = async () => {
     try {
-      await setDoc(doc(db, 'usuarios', user.uid), {
-        nome: displayName,
-        email,
-        profileImageUrl: photoURL,
-      });
-      await user.updateProfile({
-        displayName,
-        photoURL,
-      });
+      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
 
-      alert('Perfil atualizado com sucesso!');
+        await setDoc(doc(db, 'usuarios', user.uid), {
+          nome: displayName,
+          email,
+          profileImageUrl: photoURL,
+          autenticacao: userData.autenticacao,
+        });
+
+        setShowSuccessModal(true); // Exibe o modal de sucesso
+      }
     } catch (error) {
       console.error('Erro ao atualizar perfil: ', error);
     }
@@ -86,6 +88,11 @@ const ProfileScreen = () => {
 
   const resetPassword = () => {
     navigation.navigate('ResetPassword');
+  };
+
+  const closeSuccessModal = () => {
+    setShowSuccessModal(false);
+    navigation.navigate('Profile'); // Volta para a página de Profile
   };
 
   if (isConfirmingDelete) {
@@ -141,6 +148,22 @@ const ProfileScreen = () => {
       <TouchableOpacity onPress={showConfirmDelete} style={styles.deleteButton}>
         <Text style={styles.deleteButtonText}>Excluir Conta</Text>
       </TouchableOpacity>
+
+      {/* Modal de Sucesso */}
+      <Modal
+        transparent={true}
+        visible={showSuccessModal}
+        animationType="slide"
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalText}>Perfil atualizado com sucesso!</Text>
+            <TouchableOpacity onPress={closeSuccessModal} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -198,52 +221,35 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  confirmContainer: {
+  modalBackground: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    width: 300,
     padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  confirmHeading: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8a0b07',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  confirmText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#333',
-  },
-  confirmButtonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-  },
-  confirmButton: {
-    padding: 10,
-    backgroundColor: '#8a0b07',
+    backgroundColor: '#fff',
     borderRadius: 10,
-    width: '45%',
     alignItems: 'center',
   },
-  confirmButtonText: {
+  modalText: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#8a0b07',
+    padding: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-  cancelButton: {
-    padding: 10,
-    backgroundColor: '#ccc',
-    borderRadius: 10,
-    width: '45%',
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#333',
-    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
