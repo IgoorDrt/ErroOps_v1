@@ -188,6 +188,7 @@ export default function AppNavigator() {
           component={SearchScreen}
           options={{ headerShown: false }}
         />
+        
         <Stack.Screen
           name="ResetPassword"
           component={ResetPassword}

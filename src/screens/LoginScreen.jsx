@@ -96,7 +96,10 @@ export default function LoginScreen({ navigation }) {
           onChangeText={setPassword}
           secureTextEntry={!isPasswordVisible}
         />
-        <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+        <TouchableOpacity 
+          style={styles.eyeIcon} 
+          onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+        >
           <Icon name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
         </TouchableOpacity>
       </View>
@@ -133,7 +136,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 0, // Remove a borda
+    borderWidth: 0,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -141,13 +144,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f1f1',
     borderRadius: 10,
     paddingHorizontal: 10,
-    borderWidth: 0, // Remove a borda
+    borderWidth: 0,
     marginBottom: 15,
   },
   passwordInput: {
     flex: 1,
     paddingVertical: 10,
-    borderWidth: 0, // Remove a borda
+    paddingRight: 50, // Aumenta o espaçamento para o ícone
+    borderWidth: 0,
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 15,
   },
   button: {
     backgroundColor: '#8a0b07',

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable } from 'react-native';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import Icon from 'react-native-vector-icons/MaterialIcons';  // Importando a biblioteca de ícones
-import { BlurView } from 'expo-blur'; // Biblioteca para desfocar o fundo
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { BlurView } from 'expo-blur';
 
 // Firebase config
 const firebaseConfig = {
@@ -24,9 +24,8 @@ const auth = getAuth(app);
 const EmpresaScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
   const [comments, setComments] = useState({});
-  const [likes, setLikes] = useState({});
-  const [userAuth, setUserAuth] = useState(null); // Para rastrear o campo de "autenticacao" do usuário
-  const [selectedImage, setSelectedImage] = useState(null); // Estado para controlar a imagem ampliada
+  const [userAuth, setUserAuth] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -36,7 +35,6 @@ const EmpresaScreen = ({ navigation }) => {
           setUserAuth(doc.data().autenticacao); // Obter o valor de 'autenticacao'
         }
       });
-
       return () => unsubscribe();
     }
   }, []);
@@ -49,7 +47,6 @@ const EmpresaScreen = ({ navigation }) => {
       }));
       setPosts(postsData);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -63,7 +60,7 @@ const EmpresaScreen = ({ navigation }) => {
           await updateDoc(postRef, {
             comments: arrayUnion({ email, commentText })
           });
-          setComments((prev) => ({ ...prev, [postId]: '' })); // Limpar o campo de entrada
+          setComments((prev) => ({ ...prev, [postId]: '' }));
         } catch (error) {
           console.error("Erro ao postar comentário: ", error);
         }
@@ -90,7 +87,12 @@ const EmpresaScreen = ({ navigation }) => {
   const renderPost = ({ item }) => {
     return (
       <View style={styles.postBox}>
-        <Text style={styles.username}>{item.email}</Text>
+        {/* Exibição do perfil do usuário na parte superior da postagem */}
+        <View style={styles.userHeader}>
+          <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
+          <Text style={styles.username}>{item.email}</Text>
+        </View>
+
         {item.imageUrl && (
           <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl)}>
             <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
@@ -98,12 +100,10 @@ const EmpresaScreen = ({ navigation }) => {
         )}
         <Text style={styles.postText}>{item.caption}</Text>
 
-        {/* Likes */}
         <TouchableOpacity onPress={() => likePost(item.id)}>
           <Text style={styles.likeButton}>Curtir ({item.likes?.length || 0})</Text>
         </TouchableOpacity>
 
-        {/* Comments */}
         {item.comments && item.comments.length > 0 && (
           <View style={styles.commentList}>
             {item.comments.map((comment, index) => (
@@ -138,6 +138,7 @@ const EmpresaScreen = ({ navigation }) => {
         style={styles.postList}
       />
 
+      {/* Botão para acessar PostagemScreen, visível apenas para usuários com autenticacao === 2 */}
       {userAuth === 2 && (
         <TouchableOpacity
           style={styles.floatingButton}
@@ -147,7 +148,6 @@ const EmpresaScreen = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      {/* Modal para a imagem ampliada */}
       {selectedImage && (
         <Modal
           transparent={true}
@@ -183,13 +183,24 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 10,
   },
+  userHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
   username: {
     fontWeight: 'bold',
     color: '#fff',
-    marginBottom: 10,
   },
   postText: {
     color: '#fff',
+    marginVertical: 10,
   },
   postImage: {
     width: '100%',
