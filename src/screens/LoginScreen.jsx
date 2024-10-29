@@ -4,13 +4,14 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { FontAwesome } from 'react-native-vector-icons';
-import { getFirestore, doc, getDoc } from 'firebase/firestore'; // Firestore
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 const db = getFirestore();
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
@@ -20,17 +21,15 @@ export default function LoginScreen({ navigation }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Obter o documento do Firestore do usuário logado
       const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        // Verificar o campo autenticacao e navegar para a tela correta
         if (userData.autenticacao === 1 || userData.autenticacao === 2) {
-          navigation.navigate('Main'); // Tela principal (tanto para usuários quanto empresas)
+          navigation.navigate('Main');
         } else if (userData.autenticacao === 3) {
-          navigation.navigate('PainelAdm'); // Tela de admin
+          navigation.navigate('PainelAdm');
         } else {
           setError('Permissão inválida.');
         }
@@ -56,17 +55,15 @@ export default function LoginScreen({ navigation }) {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Obter o documento do Firestore do usuário logado
       const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        // Verificar o campo autenticacao e navegar para a tela correta
         if (userData.autenticacao === 1 || userData.autenticacao === 2) {
-          navigation.navigate('Main'); // Tela principal (tanto para usuários quanto empresas)
+          navigation.navigate('Main');
         } else if (userData.autenticacao === 3) {
-          navigation.navigate('PainelAdmScreen'); // Tela de admin
+          navigation.navigate('PainelAdm');
         } else {
           setError('Permissão inválida.');
         }
@@ -91,13 +88,18 @@ export default function LoginScreen({ navigation }) {
         onChangeText={setEmail}
         keyboardType="email-address"
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Senha"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!isPasswordVisible}
+        />
+        <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+          <Icon name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
+        </TouchableOpacity>
+      </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
@@ -131,8 +133,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    borderColor: '#ccc',
-    borderWidth: 1,
+    borderWidth: 0, // Remove a borda
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    borderWidth: 0, // Remove a borda
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 10,
+    borderWidth: 0, // Remove a borda
   },
   button: {
     backgroundColor: '#8a0b07',

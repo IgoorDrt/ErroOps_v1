@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons'; // Import do ícone
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -22,6 +24,7 @@ const SearchScreen = () => {
   const [results, setResults] = useState([]);
   const [suggestedErrors, setSuggestedErrors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation();
 
   const fetchRandomErrors = async () => {
     try {
@@ -87,6 +90,10 @@ const SearchScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <Icon name="arrow-back" size={24} color="#8a0b07" />
+      </TouchableOpacity>
+
       <Text style={styles.title}>ErrOops</Text>
       <Text style={styles.subtitle}>Como podemos te ajudar hoje?</Text>
 
@@ -131,6 +138,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     padding: 20,
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
   },
   title: {
     fontSize: 28,

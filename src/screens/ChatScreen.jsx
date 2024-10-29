@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, FlatList, Text, Image, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, FlatList, Text, Image, StyleSheet, Modal, Pressable, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -25,26 +25,26 @@ const auth = getAuth(app);
 const ChatScreen = ({ route, navigation }) => {
   const { userId, otherUserId } = route.params;
 
-  if (!userId || !otherUserId) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorMessage}>Erro: IDs de usuário não estão disponíveis.</Text>
-      </View>
-    );
-  }
-
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [otherUserData, setOtherUserData] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  useEffect(() => {
+    const requestPermissions = async () => {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status: galleryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (cameraStatus !== 'granted' || galleryStatus !== 'granted') {
+        Alert.alert('Permissão necessária', 'Precisamos de permissão para acessar a câmera e galeria.');
+      }
+    };
+    requestPermissions();
+  }, []);
 
   useEffect(() => {
     const updateStatus = async (status) => {
       const userDocRef = doc(db, 'onlineStatus', userId);
-      if (status === 'online') {
-        await updateDoc(userDocRef, { status: 'online', lastSeen: serverTimestamp() }, { merge: true });
-      } else {
-        await updateDoc(userDocRef, { status: 'offline', lastSeen: serverTimestamp() }, { merge: true });
-      }
+      await updateDoc(userDocRef, { status, lastSeen: serverTimestamp() });
     };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -101,9 +101,8 @@ const ChatScreen = ({ route, navigation }) => {
         ...doc.data(),
       }));
       setMessages(msgs);
-
-      markMessagesAsDelivered(msgs); // Marca como entregues
-      markMessagesAsRead(msgs); // Marca como lidas se vistas
+      markMessagesAsDelivered(msgs);
+      markMessagesAsRead(msgs);
     });
 
     return () => unsubscribe();
@@ -112,7 +111,7 @@ const ChatScreen = ({ route, navigation }) => {
   const markMessagesAsDelivered = async (msgs) => {
     const chatId = getChatId(userId, otherUserId);
     msgs.forEach(async (msg) => {
-      if (msg.senderId !== userId && msg.status === 'sent') { 
+      if (msg.senderId !== userId && msg.status === 'sent') {
         const messageDocRef = doc(db, 'chats', chatId, 'messages', msg.id);
         await updateDoc(messageDocRef, { status: 'delivered' });
       }
@@ -122,7 +121,7 @@ const ChatScreen = ({ route, navigation }) => {
   const markMessagesAsRead = async (msgs) => {
     const chatId = getChatId(userId, otherUserId);
     msgs.forEach(async (msg) => {
-      if (msg.senderId !== userId && msg.status === 'delivered') { 
+      if (msg.senderId !== userId && msg.status === 'delivered') {
         const messageDocRef = doc(db, 'chats', chatId, 'messages', msg.id);
         await updateDoc(messageDocRef, { status: 'read' });
       }
@@ -130,37 +129,35 @@ const ChatScreen = ({ route, navigation }) => {
   };
 
   const handleSelectImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      await sendMessage(result.uri, 'image');
+      if (!result.canceled) {
+        await sendMessage(result.assets[0].uri, 'image');
+      }
+    } catch (error) {
+      console.error("Erro ao selecionar imagem:", error);
     }
   };
 
   const handleTakePhoto = async () => {
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      await sendMessage(result.uri, 'image');
-    }
-  };
-
-  const handleSelectDocument = async () => {
-    let result = await DocumentPicker.getDocumentAsync({
-      type: 'application/*',
-    });
-
-    if (result.type === 'success') {
-      await sendMessage(result.uri, 'document');
+      if (!result.canceled) {
+        await sendMessage(result.assets[0].uri, 'image');
+      }
+    } catch (error) {
+      console.error("Erro ao tirar foto:", error);
     }
   };
 
@@ -173,7 +170,6 @@ const ChatScreen = ({ route, navigation }) => {
         await addDoc(messagesRef, {
           text: type === 'text' ? newMessage : '',
           imageUrl: type === 'image' ? content : '',
-          documentUrl: type === 'document' ? content : '',
           senderId: userId,
           timestamp: serverTimestamp(),
           status: 'sent',
@@ -205,7 +201,13 @@ const ChatScreen = ({ route, navigation }) => {
     const isSender = item.senderId === userId;
     return (
       <View style={[styles.messageContainer, isSender ? styles.sender : styles.receiver]}>
-        <Text style={styles.messageText}>{item.text}</Text>
+        {item.imageUrl ? (
+          <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl)}>
+            <Image source={{ uri: item.imageUrl }} style={styles.messageImage} />
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.messageText}>{item.text}</Text>
+        )}
         <View style={styles.messageFooter}>
           <Text style={styles.timestamp}>
             {item.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -250,8 +252,11 @@ const ChatScreen = ({ route, navigation }) => {
       />
 
       <View style={styles.inputContainer}>
-        <TouchableOpacity onPress={handleSelectDocument} style={styles.iconButton}>
-          <Ionicons name="attach" size={24} color="#8a0b07" />
+        <TouchableOpacity onPress={handleTakePhoto} style={styles.iconButton}>
+          <Ionicons name="camera" size={24} color="#8a0b07" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleSelectImage} style={styles.iconButton}>
+          <Ionicons name="image" size={24} color="#8a0b07" />
         </TouchableOpacity>
         <TextInput
           placeholder="Digite uma mensagem"
@@ -259,13 +264,23 @@ const ChatScreen = ({ route, navigation }) => {
           onChangeText={setNewMessage}
           style={styles.input}
         />
-        <TouchableOpacity onPress={handleTakePhoto} style={styles.iconButton}>
-          <Ionicons name="camera" size={24} color="#8a0b07" />
-        </TouchableOpacity>
         <TouchableOpacity onPress={() => sendMessage(newMessage, 'text')} style={styles.sendButton}>
           <Text style={styles.sendButtonText}>ENVIAR</Text>
         </TouchableOpacity>
       </View>
+
+      {selectedImage && (
+        <Modal transparent={true} visible={!!selectedImage} onRequestClose={() => setSelectedImage(null)}>
+          <View style={styles.modalContainer}>
+            <BlurView intensity={100} style={styles.blurBackground}>
+              <Pressable onPress={() => setSelectedImage(null)} style={styles.closeButton}>
+                <Text style={styles.closeText}>Fechar</Text>
+              </Pressable>
+              <Image source={{ uri: selectedImage }} style={styles.fullscreenImage} resizeMode="contain" />
+            </BlurView>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -339,6 +354,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#ccc',
   },
+  messageImage: {
+    width: 200,
+    height: 200,
+    borderRadius: 10,
+    marginVertical: 5,
+  },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -370,10 +391,36 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  errorMessage: {
-    color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  blurBackground: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: '90%',
+    height: '70%',
+    borderRadius: 10,
+    borderWidth: 0,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    padding: 10,
+  },
+  closeText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 });
 

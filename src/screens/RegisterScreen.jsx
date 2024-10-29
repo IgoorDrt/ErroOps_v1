@@ -1,12 +1,12 @@
-import React, { useState } from 'react'; 
+import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import Icon from 'react-native-vector-icons/Ionicons';  // Ícone de voltar
-import { FontAwesome } from 'react-native-vector-icons'; // Ícone do Google
+import Icon from 'react-native-vector-icons/Ionicons';
+import { FontAwesome } from 'react-native-vector-icons';
 import { auth } from '../config/firebase';
-import { getFirestore, doc, setDoc } from 'firebase/firestore'; // Firestore
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'; // Firebase Storage
-import { launchImageLibrary } from 'react-native-image-picker'; // Biblioteca para escolher imagem
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 const db = getFirestore();
 const storage = getStorage();
@@ -16,17 +16,18 @@ export default function RegisterScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState('');
-  const [profileImage, setProfileImage] = useState(null); // Para armazenar a imagem do perfil
-  const [imageUri, setImageUri] = useState(''); // Armazenar URI da imagem
+  const [profileImage, setProfileImage] = useState(null);
+  const [imageUri, setImageUri] = useState('');
 
-  // Função para selecionar imagem da galeria
   const selectProfileImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
       if (!response.didCancel && !response.error && response.assets) {
         const selectedImage = response.assets[0];
         setProfileImage(selectedImage);
-        setImageUri(selectedImage.uri); // Atualizar URI da imagem
+        setImageUri(selectedImage.uri);
       }
     });
   };
@@ -43,25 +44,23 @@ export default function RegisterScreen({ navigation }) {
   
       let profileImageUrl = null;
   
-      // Se o usuário selecionou uma imagem, faça o upload para o Firebase Storage
       if (profileImage) {
         const imageRef = ref(storage, `profileImages/${user.uid}`);
         const img = await fetch(profileImage.uri);
         const bytes = await img.blob();
         await uploadBytes(imageRef, bytes);
-        profileImageUrl = await getDownloadURL(imageRef); // Obter o URL da imagem
+        profileImageUrl = await getDownloadURL(imageRef);
       }
   
-      // Armazenar os dados do usuário no Firestore com o campo autenticacao = 1
       await setDoc(doc(db, 'usuarios', user.uid), {
         nome: name,
         email: user.email,
         uid: user.uid,
-        profileImageUrl: profileImageUrl, // URL da imagem de perfil
-        autenticacao: 1, // Adicionando o campo autenticacao com valor 1
+        profileImageUrl: profileImageUrl,
+        autenticacao: 1,
       });
   
-      navigation.navigate('Login'); // Redireciona para a página de login após o registro
+      navigation.navigate('Login');
     } catch (error) {
       setError(error.message);
     }
@@ -72,21 +71,18 @@ export default function RegisterScreen({ navigation }) {
     signInWithPopup(auth, provider)
       .then(async (result) => {
         const user = result.user;
-        console.log('Usuário logado com Google:', user);
   
-        // Pegar a foto de perfil do Google
         const googleProfileImageUrl = user.photoURL;
   
-        // Armazenar os dados do usuário no Firestore com o campo autenticacao = 1
         await setDoc(doc(db, 'usuarios', user.uid), {
           nome: user.displayName || 'Usuário Google',
           email: user.email,
           uid: user.uid,
-          profileImageUrl: googleProfileImageUrl, // URL da imagem de perfil do Google
-          autenticacao: 1, // Adicionando o campo autenticacao com valor 1
+          profileImageUrl: googleProfileImageUrl,
+          autenticacao: 1,
         });
   
-        navigation.navigate('Main'); // Redireciona para a página principal após login com Google
+        navigation.navigate('Main');
       })
       .catch((error) => {
         setError(error.message);
@@ -95,12 +91,11 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Botão de voltar */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Icon name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
       <Text style={styles.title}>Registrar-se</Text>
-      {/* Exibir imagem de perfil, se houver */}
+
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.profileImage} /> : null}
 
       <TextInput
@@ -109,7 +104,6 @@ export default function RegisterScreen({ navigation }) {
         value={name}
         onChangeText={setName}
       />
-      
       <TextInput
         style={styles.input}
         placeholder="Email"
@@ -118,26 +112,31 @@ export default function RegisterScreen({ navigation }) {
         keyboardType="email-address"
       />
       
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Confirmar Senha"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Senha"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry={!isPasswordVisible}
+        />
+        <TouchableOpacity onPress={() => setIsPasswordVisible(!isPasswordVisible)}>
+          <Icon name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
+        </TouchableOpacity>
+      </View>
 
-      {/* Botão para selecionar imagem */}
-      <TouchableOpacity style={styles.imagePickerButton} onPress={selectProfileImage}>
-        <Text style={styles.buttonText}>Escolher Foto de Perfil</Text>
-      </TouchableOpacity>
+      <View style={styles.passwordContainer}>
+        <TextInput
+          style={styles.passwordInput}
+          placeholder="Confirmar Senha"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureTextEntry={!isConfirmPasswordVisible}
+        />
+        <TouchableOpacity onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}>
+          <Icon name={isConfirmPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
+        </TouchableOpacity>
+      </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -158,16 +157,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 20,
     backgroundColor: '#ffffff',
-    paddingTop: 110, // Aumentando o padding no topo
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 30,
+    color: '#8a0b07',
+    textAlign: 'center',
   },
   input: {
     backgroundColor: '#f1f1f1',
     borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    padding: 15,
     marginBottom: 15,
-    borderColor: '#ccc',
-    borderWidth: 1,
+    borderWidth: 0, // Remove a borda
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f1f1',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    borderWidth: 0, // Remove a borda
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 10,
+    borderWidth: 0, // Remove a borda
   },
   button: {
     backgroundColor: '#8a0b07',
@@ -180,19 +197,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
   },
-  backButton: {
-    position: 'absolute',
-    top: 40, // Ajuste para garantir que fique no topo
-    left: 20,
-    backgroundColor: '#8a0b07',
-    padding: 10,
-    borderRadius: 10,
-  },
-  errorText: {
-    color: 'red',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
   googleButton: {
     backgroundColor: '#fff',
     padding: 15,
@@ -204,7 +208,19 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     alignSelf: 'center',
-    marginTop: 20,
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    backgroundColor: '#8a0b07',
+    padding: 10,
+    borderRadius: 10,
   },
   profileImage: {
     width: 100,
@@ -212,19 +228,5 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignSelf: 'center',
     marginBottom: 20,
-  },
-  imagePickerButton: {
-    backgroundColor: '#8a0b07',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    color: '#8a0b07',
-    textAlign: 'center',
   },
 });
