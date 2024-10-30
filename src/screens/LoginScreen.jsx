@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { FontAwesome } from 'react-native-vector-icons';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import * as AuthSession from 'expo-auth-session';
 
 const db = getFirestore();
 
@@ -16,11 +17,9 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     setError('');
-
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
       const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
 
       if (userDoc.exists()) {
@@ -49,26 +48,32 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+      // Configuração para autenticação OAuth
+      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${AuthSession.makeRedirectUri()}&response_type=token&scope=profile email`;
+      
+      const result = await AuthSession.startAsync({ authUrl });
 
-      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      if (result.type === 'success' && result.params.access_token) {
+        const credential = GoogleAuthProvider.credential(null, result.params.access_token);
+        const userCredential = await signInWithCredential(auth, credential);
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+        const user = userCredential.user;
+        const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
 
-        if (userData.autenticacao === 1 || userData.autenticacao === 2) {
-          navigation.navigate('Main');
-        } else if (userData.autenticacao === 3) {
-          navigation.navigate('PainelAdm');
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+
+          if (userData.autenticacao === 1 || userData.autenticacao === 2) {
+            navigation.navigate('Main');
+          } else if (userData.autenticacao === 3) {
+            navigation.navigate('PainelAdm');
+          } else {
+            setError('Permissão inválida.');
+          }
         } else {
-          setError('Permissão inválida.');
+          setError('Dados do usuário não encontrados.');
         }
-      } else {
-        setError('Dados do usuário não encontrados.');
       }
     } catch (error) {
       setError(error.message);
@@ -150,7 +155,7 @@ const styles = StyleSheet.create({
   passwordInput: {
     flex: 1,
     paddingVertical: 10,
-    paddingRight: 50, // Aumenta o espaçamento para o ícone
+    paddingRight: 50,
     borderWidth: 0,
   },
   eyeIcon: {

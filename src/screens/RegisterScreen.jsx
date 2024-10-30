@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
-import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { FontAwesome } from 'react-native-vector-icons';
 import { auth } from '../config/firebase';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { launchImageLibrary } from 'react-native-image-picker';
+import * as GoogleSignIn from 'expo-google-sign-in';
 
 const db = getFirestore();
 const storage = getStorage();
@@ -21,6 +22,11 @@ export default function RegisterScreen({ navigation }) {
   const [error, setError] = useState('');
   const [profileImage, setProfileImage] = useState(null);
   const [imageUri, setImageUri] = useState('');
+
+  useEffect(() => {
+    // Inicialize o Google Sign-In quando o componente for montado
+    GoogleSignIn.initAsync();
+  }, []);
 
   const selectProfileImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -37,13 +43,13 @@ export default function RegisterScreen({ navigation }) {
       setError('As senhas não coincidem');
       return;
     }
-  
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
+
       let profileImageUrl = null;
-  
+
       if (profileImage) {
         const imageRef = ref(storage, `profileImages/${user.uid}`);
         const img = await fetch(profileImage.uri);
@@ -51,7 +57,7 @@ export default function RegisterScreen({ navigation }) {
         await uploadBytes(imageRef, bytes);
         profileImageUrl = await getDownloadURL(imageRef);
       }
-  
+
       await setDoc(doc(db, 'usuarios', user.uid), {
         nome: name,
         email: user.email,
@@ -59,34 +65,36 @@ export default function RegisterScreen({ navigation }) {
         profileImageUrl: profileImageUrl,
         autenticacao: 1,
       });
-  
+
       navigation.navigate('Login');
     } catch (error) {
       setError(error.message);
     }
   };
 
-  const handleGoogleLogin = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider)
-      .then(async (result) => {
-        const user = result.user;
-  
-        const googleProfileImageUrl = user.photoURL;
-  
+  const handleGoogleLogin = async () => {
+    try {
+      const result = await GoogleSignIn.signInAsync();
+
+      if (result.type === 'success') {
+        const { idToken } = result.user.auth;
+        const credential = GoogleAuthProvider.credential(idToken);
+        const userCredential = await signInWithCredential(auth, credential);
+        const user = userCredential.user;
+
         await setDoc(doc(db, 'usuarios', user.uid), {
           nome: user.displayName || 'Usuário Google',
           email: user.email,
           uid: user.uid,
-          profileImageUrl: googleProfileImageUrl,
+          profileImageUrl: user.photoURL,
           autenticacao: 1,
         });
-  
+
         navigation.navigate('Main');
-      })
-      .catch((error) => {
-        setError(error.message);
-      });
+      }
+    } catch (error) {
+      setError(error.message);
+    }
   };
 
   return (
@@ -111,7 +119,7 @@ export default function RegisterScreen({ navigation }) {
         onChangeText={setEmail}
         keyboardType="email-address"
       />
-      
+
       <View style={styles.passwordContainer}>
         <TextInput
           style={styles.passwordInput}
@@ -143,7 +151,7 @@ export default function RegisterScreen({ navigation }) {
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Registrar</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
         <FontAwesome name="google" size={24} color="#8a0b07" />
       </TouchableOpacity>
@@ -170,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 0, // Remove a borda
+    borderWidth: 0,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -178,13 +186,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f1f1',
     borderRadius: 10,
     paddingHorizontal: 10,
-    borderWidth: 0, // Remove a borda
+    borderWidth: 0,
     marginBottom: 15,
   },
   passwordInput: {
     flex: 1,
     paddingVertical: 10,
-    borderWidth: 0, // Remove a borda
+    borderWidth: 0,
   },
   button: {
     backgroundColor: '#8a0b07',

@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Press
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { MaterialIcons } from '@expo/vector-icons'; // Importação do Expo
 import { BlurView } from 'expo-blur';
 
 // Firebase config
@@ -75,7 +75,7 @@ const EmpresaScreen = ({ navigation }) => {
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
           <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
-          <Text style={styles.username}>{item.email}</Text>
+          <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
         </View>
 
         {item.imageUrl && (
@@ -83,11 +83,11 @@ const EmpresaScreen = ({ navigation }) => {
             <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
           </TouchableOpacity>
         )}
-        <Text style={styles.postText}>{item.caption}</Text>
+        <Text style={styles.postText}>{item.caption || 'Sem legenda'}</Text>
 
         <View style={styles.actionRow}>
           <TouchableOpacity onPress={() => likePost(item.id)} style={styles.likeSection}>
-            <Icon
+            <MaterialIcons
               name="favorite"
               size={24}
               color={userLiked ? '#8a0b07' : '#888'}
@@ -97,7 +97,7 @@ const EmpresaScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.commentSection}>
-            <Icon name="chat-bubble-outline" size={24} color="#888" style={styles.commentIcon} />
+            <MaterialIcons name="chat-bubble-outline" size={24} color="#888" style={styles.commentIcon} />
             <Text style={styles.commentCount}>{item.comments?.length || 0}</Text>
           </TouchableOpacity>
         </View>
@@ -119,7 +119,7 @@ const EmpresaScreen = ({ navigation }) => {
           style={styles.floatingButton}
           onPress={() => navigation.navigate('PostagemScreen')}
         >
-          <Icon name="add" size={30} color="white" />
+          <MaterialIcons name="add" size={30} color="white" />
         </TouchableOpacity>
       )}
 

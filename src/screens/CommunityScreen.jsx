@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import Icon from 'react-native-vector-icons/MaterialIcons';  // Importing the icon library
+import { MaterialIcons } from '@expo/vector-icons';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -40,14 +40,13 @@ const CommunityScreen = ({ navigation }) => {
 
   const postError = async () => {
     if (errorText.trim()) {
-      const user = auth.currentUser; // Obtém o usuário autenticado
+      const user = auth.currentUser;
       if (user) {
-        const email = user.email; // Pega o e-mail do usuário logado
         try {
           await addDoc(collection(db, 'errors'), {
-            email, // Armazena o e-mail do usuário logado
+            email: user.email || 'Usuário desconhecido', // Garante que email seja string
             text: errorText,
-            comments: [] // Inicia a lista de comentários vazia
+            comments: []
           });
           setErrorText('');
         } catch (error) {
@@ -61,15 +60,14 @@ const CommunityScreen = ({ navigation }) => {
 
   const postComment = async (errorId, commentText) => {
     if (commentText.trim()) {
-      const user = auth.currentUser; // Obtém o usuário autenticado
+      const user = auth.currentUser;
       if (user) {
-        const email = user.email; // Pega o e-mail do usuário logado
         try {
           const errorRef = doc(db, 'errors', errorId);
           await updateDoc(errorRef, {
-            comments: arrayUnion({ email, commentText }) // Adiciona o novo comentário ao array de comentários
+            comments: arrayUnion({ email: user.email || 'Usuário desconhecido', commentText })
           });
-          setComments((prev) => ({ ...prev, [errorId]: '' })); // Limpa o campo de input de comentários
+          setComments((prev) => ({ ...prev, [errorId]: '' }));
         } catch (error) {
           console.error("Erro ao postar comentário: ", error);
         }
@@ -79,37 +77,34 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
-  const renderError = ({ item }) => {
-    return (
-      <View style={styles.errorBox}>
-        <Text style={styles.username}>{item.email}</Text> {/* Exibe o e-mail do usuário */} 
-        <Text style={styles.errorText}>{item.text}</Text> {/* Exibe o texto do erro */}
-        
-        {/* Renderiza os comentários se existirem */}
-        {item.comments && item.comments.length > 0 && (
-          <View style={styles.commentList}>
-            {item.comments.map((comment, index) => (
-              <Text key={index} style={styles.comment}>
-                <Text style={styles.commentUser}>{comment.email}:</Text> {comment.commentText}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.commentSection}>
-          <TextInput
-            placeholder="Comente aqui..."
-            value={comments[item.id] || ''}
-            onChangeText={(text) => setComments({ ...comments, [item.id]: text })}
-            style={styles.commentInput}
-          />
-          <TouchableOpacity onPress={() => postComment(item.id, comments[item.id])}>
-            <Text style={styles.commentButton}>Comentar</Text>
-          </TouchableOpacity>
+  const renderError = ({ item }) => (
+    <View style={styles.errorBox}>
+      <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
+      <Text style={styles.errorText}>{item.text || 'Erro sem descrição'}</Text>
+      
+      {item.comments && item.comments.length > 0 && (
+        <View style={styles.commentList}>
+          {item.comments.map((comment, index) => (
+            <Text key={index} style={styles.comment}>
+              <Text style={styles.commentUser}>{comment.email || 'Usuário desconhecido'}:</Text> {comment.commentText || 'Comentário sem texto'}
+            </Text>
+          ))}
         </View>
+      )}
+
+      <View style={styles.commentSection}>
+        <TextInput
+          placeholder="Comente aqui..."
+          value={comments[item.id] || ''}
+          onChangeText={(text) => setComments({ ...comments, [item.id]: text })}
+          style={styles.commentInput}
+        />
+        <TouchableOpacity onPress={() => postComment(item.id, comments[item.id])}>
+          <Text style={styles.commentButton}>Comentar</Text>
+        </TouchableOpacity>
       </View>
-    );
-  };
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -119,20 +114,22 @@ const CommunityScreen = ({ navigation }) => {
         onChangeText={setErrorText}
         style={styles.input}
       />
-      <Button title="Postar Erro" onPress={postError} color="#8a0b07" borderRadius="5px "/>
+      <TouchableOpacity style={styles.button} onPress={postError}>
+        <Text style={styles.buttonText}>Postar Erro</Text>
+      </TouchableOpacity>
+      
       <FlatList
         data={errors}
         renderItem={renderError}
         keyExtractor={(item) => item.id}
         style={styles.errorList}
       />
-      
-      {/* Floating Button with Icon */}
+
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => navigation.navigate('SearchChatScreen')} // Navigate to SearchChatScreen
+        onPress={() => navigation.navigate('SearchChatScreen')}
       >
-        <Icon name="message" size={30} color="white" />  {/* Message Icon */}
+        <MaterialIcons name="message" size={30} color="white" />
       </TouchableOpacity>
     </View>
   );
@@ -150,6 +147,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 20,
     borderRadius: 5,
+    color: '#333',
+  },
+  button: {
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   errorList: {
     marginTop: 20,
@@ -170,6 +179,8 @@ const styles = StyleSheet.create({
   },
   commentSection: {
     marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   commentInput: {
     borderWidth: 1,
@@ -178,10 +189,12 @@ const styles = StyleSheet.create({
     color: '#000',
     backgroundColor: '#fff',
     borderRadius: 5,
+    flex: 1,
+    marginRight: 10,
   },
   commentButton: {
     color: '#fff',
-    marginTop: 5,
+    fontWeight: 'bold',
   },
   commentList: {
     marginTop: 10,
@@ -195,12 +208,11 @@ const styles = StyleSheet.create({
   commentUser: {
     fontWeight: 'bold',
   },
-  // Floating button styles
   floatingButton: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#000000', // Updated to the requested color
+    backgroundColor: '#000',
     width: 60,
     height: 60,
     borderRadius: 30,
