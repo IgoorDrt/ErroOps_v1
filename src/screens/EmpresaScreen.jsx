@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable } from 'react-native';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { BlurView } from 'expo-blur';
@@ -23,16 +23,17 @@ const auth = getAuth(app);
 
 const EmpresaScreen = ({ navigation }) => {
   const [posts, setPosts] = useState([]);
-  const [comments, setComments] = useState({});
   const [userAuth, setUserAuth] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
+      setUserEmail(user.email);
       const unsubscribe = onSnapshot(doc(db, 'usuarios', user.uid), (doc) => {
         if (doc.exists()) {
-          setUserAuth(doc.data().autenticacao); // Obter o valor de 'autenticacao'
+          setUserAuth(doc.data().autenticacao);
         }
       });
       return () => unsubscribe();
@@ -50,33 +51,16 @@ const EmpresaScreen = ({ navigation }) => {
     return () => unsubscribe();
   }, []);
 
-  const postComment = async (postId, commentText) => {
-    if (commentText.trim()) {
-      const user = auth.currentUser;
-      if (user) {
-        const email = user.email;
-        try {
-          const postRef = doc(db, 'posts', postId);
-          await updateDoc(postRef, {
-            comments: arrayUnion({ email, commentText })
-          });
-          setComments((prev) => ({ ...prev, [postId]: '' }));
-        } catch (error) {
-          console.error("Erro ao postar comentário: ", error);
-        }
-      } else {
-        console.error("Usuário não está logado.");
-      }
-    }
-  };
-
   const likePost = async (postId) => {
+    const postRef = doc(db, 'posts', postId);
     const user = auth.currentUser;
     if (user) {
       try {
-        const postRef = doc(db, 'posts', postId);
+        const post = posts.find((p) => p.id === postId);
+        const userLiked = post.likes?.includes(user.email);
+
         await updateDoc(postRef, {
-          likes: arrayUnion(user.email)
+          likes: userLiked ? arrayRemove(user.email) : arrayUnion(user.email)
         });
       } catch (error) {
         console.error("Erro ao curtir postagem: ", error);
@@ -85,9 +69,10 @@ const EmpresaScreen = ({ navigation }) => {
   };
 
   const renderPost = ({ item }) => {
+    const userLiked = item.likes?.includes(userEmail);
+
     return (
       <View style={styles.postBox}>
-        {/* Exibição do perfil do usuário na parte superior da postagem */}
         <View style={styles.userHeader}>
           <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
           <Text style={styles.username}>{item.email}</Text>
@@ -100,29 +85,20 @@ const EmpresaScreen = ({ navigation }) => {
         )}
         <Text style={styles.postText}>{item.caption}</Text>
 
-        <TouchableOpacity onPress={() => likePost(item.id)}>
-          <Text style={styles.likeButton}>Curtir ({item.likes?.length || 0})</Text>
-        </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity onPress={() => likePost(item.id)} style={styles.likeSection}>
+            <Icon
+              name="favorite"
+              size={24}
+              color={userLiked ? '#8a0b07' : '#888'}
+              style={styles.likeIcon}
+            />
+            <Text style={styles.likeCount}>{item.likes?.length || 0}</Text>
+          </TouchableOpacity>
 
-        {item.comments && item.comments.length > 0 && (
-          <View style={styles.commentList}>
-            {item.comments.map((comment, index) => (
-              <Text key={index} style={styles.comment}>
-                <Text style={styles.commentUser}>{comment.email}:</Text> {comment.commentText}
-              </Text>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.commentSection}>
-          <TextInput
-            placeholder="Comente aqui..."
-            value={comments[item.id] || ''}
-            onChangeText={(text) => setComments({ ...comments, [item.id]: text })}
-            style={styles.commentInput}
-          />
-          <TouchableOpacity onPress={() => postComment(item.id, comments[item.id])}>
-            <Text style={styles.commentButton}>Comentar</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.commentSection}>
+            <Icon name="chat-bubble-outline" size={24} color="#888" style={styles.commentIcon} />
+            <Text style={styles.commentCount}>{item.comments?.length || 0}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -138,7 +114,6 @@ const EmpresaScreen = ({ navigation }) => {
         style={styles.postList}
       />
 
-      {/* Botão para acessar PostagemScreen, visível apenas para usuários com autenticacao === 2 */}
       {userAuth === 2 && (
         <TouchableOpacity
           style={styles.floatingButton}
@@ -171,17 +146,23 @@ const EmpresaScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#fff',
   },
   postList: {
     marginTop: 20,
   },
   postBox: {
-    backgroundColor: '#8a0b07',
-    padding: 20,
+    backgroundColor: '#f7f7f7',
+    padding: 15,
     marginBottom: 15,
     borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    elevation: 5,
   },
   userHeader: {
     flexDirection: 'row',
@@ -196,10 +177,10 @@ const styles = StyleSheet.create({
   },
   username: {
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#8a0b07',
   },
   postText: {
-    color: '#fff',
+    color: '#333',
     marginVertical: 10,
   },
   postImage: {
@@ -208,42 +189,37 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 10,
   },
-  likeButton: {
-    color: '#fff',
-    marginTop: 5,
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  likeSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likeIcon: {
+    marginRight: 5,
+  },
+  likeCount: {
+    color: '#333',
   },
   commentSection: {
-    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 15,
   },
-  commentInput: {
-    borderWidth: 1,
-    borderColor: '#fff',
-    padding: 5,
-    color: '#000',
-    backgroundColor: '#fff',
-    borderRadius: 5,
+  commentIcon: {
+    marginRight: 5,
   },
-  commentButton: {
-    color: '#fff',
-    marginTop: 5,
-  },
-  commentList: {
-    marginTop: 10,
-  },
-  comment: {
-    backgroundColor: '#fff',
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 5,
-  },
-  commentUser: {
-    fontWeight: 'bold',
+  commentCount: {
+    color: '#333',
   },
   floatingButton: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-    backgroundColor: '#000000',
+    backgroundColor: '#8a0b07',
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -277,7 +253,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   closeText: {
-    color: '#fff',
+    color: '#8a0b07',
     fontSize: 18,
     fontWeight: 'bold',
   },

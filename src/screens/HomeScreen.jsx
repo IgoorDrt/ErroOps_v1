@@ -26,7 +26,7 @@ const HomeScreen = () => {
     fetchPosts();
   }, []);
 
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.welcomeMessage}>Bem-vindo, {userName}!</Text>
@@ -50,28 +50,33 @@ const HomeScreen = () => {
           </Text>
         </View>
       </View>
-      
+
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 10, backgroundColor: '#f5f5f5' },
-  welcomeMessage: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
-  infoCard: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    padding: 30,  
-    borderRadius: 8, 
-    marginBottom: 25, 
-    elevation: 3 
+  welcomeMessage: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color:'#8a0b07',
   },
-  companyImage: { 
-    width: 120, 
-    height: 120, 
-    borderRadius: 8, 
-    marginRight: 20 
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 8,
+    marginBottom: 25,
+    elevation: 3
+  },
+  companyImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 20
   },
   companyInfo: { flex: 1 },
   companyText: { fontSize: 14, color: '#555', textAlign: 'justify' },

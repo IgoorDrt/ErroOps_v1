@@ -16,6 +16,7 @@ import WelcomeScreen from "../screens/WelcomeScreen";
 import RegisterScreen from "../screens/RegisterScreen";
 import LoginScreen from "../screens/LoginScreen";
 import HomeScreen from "../screens/HomeScreen";
+import CommentScreen from "../screens/CommentScreen";
 import ChatScreen from "../screens/ChatScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import SearchScreen from "../screens/SearchScreen";
@@ -192,6 +193,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ResetPassword"
           component={ResetPassword}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="CommentScreen"
+          component={CommentScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
