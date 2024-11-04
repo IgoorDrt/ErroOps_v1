@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Image } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Image, Platform } from 'react-native'; // Adicionei `Platform` aqui
 import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { FontAwesome } from 'react-native-vector-icons';
-import { auth } from '../config/firebase';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { launchImageLibrary } from 'react-native-image-picker';
 import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 
-const db = getFirestore();
+WebBrowser.maybeCompleteAuthSession();
+
 const storage = getStorage();
 
 export default function RegisterScreen({ navigation }) {
@@ -23,8 +25,13 @@ export default function RegisterScreen({ navigation }) {
   const [profileImage, setProfileImage] = useState(null);
   const [imageUri, setImageUri] = useState('');
 
+  // Configurando a autenticação do Google
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Substitua pelo seu Client ID do Google
+    clientId: Platform.select({
+      android: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+      ios: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+      web: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+    }),
   });
 
   useEffect(() => {
@@ -100,7 +107,7 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
         <Icon name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
       <Text style={styles.title}>Registrar-se</Text>

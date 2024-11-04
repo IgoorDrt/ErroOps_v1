@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { FontAwesome } from 'react-native-vector-icons';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+
+WebBrowser.maybeCompleteAuthSession();
 
 const db = getFirestore();
 
@@ -17,7 +20,11 @@ export default function LoginScreen({ navigation }) {
 
   // Configurando a autenticação do Google
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Substitua pelo Client ID do seu projeto
+    clientId: Platform.select({
+      android: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+      ios: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+      web: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
+    }),
   });
 
   useEffect(() => {
@@ -78,6 +85,7 @@ export default function LoginScreen({ navigation }) {
         }
       } else {
         setError('Dados do usuário não encontrados.');
+        navigation.navigate('Main'); // Redireciona para a página principal caso o documento não seja encontrado.
       }
     } catch (error) {
       setError(error.message);
@@ -86,7 +94,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
         <Icon name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
       <Text style={styles.title}>Entrar na sua conta</Text>

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, addDoc, collection } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp } from 'firebase/app';
+import Icon from 'react-native-vector-icons/Ionicons';
 
-// Firebase config (configure this according to your project)
+// Configuração do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
   authDomain: "erroops-93c8a.firebaseapp.com",
@@ -16,7 +17,7 @@ const firebaseConfig = {
   appId: "1:694707365976:web:440ace5273d2c0aa4c022d"
 };
 
-// Initialize Firebase
+// Inicializa o Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -26,61 +27,54 @@ const PostagemScreen = ({ navigation }) => {
   const [caption, setCaption] = useState('');
   const [selectedImage, setSelectedImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Function to pick an image from the gallery
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       alert('Permissão para acessar a galeria é necessária!');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [4, 3],  // You can adjust the aspect ratio as needed
+      aspect: [4, 3],
       quality: 1,
     });
 
     if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri); // Set the image URI to the selected image
+      setSelectedImage(result.assets[0].uri);
     }
   };
 
-  // Function to upload image and post details
   const handlePost = async () => {
     if (!caption.trim()) {
       alert('Por favor, escreva uma legenda.');
       return;
     }
-
     try {
       setIsUploading(true);
       const user = auth.currentUser;
       let imageUrl = null;
 
-      // Upload image if one is selected
       if (selectedImage) {
         const response = await fetch(selectedImage);
         const blob = await response.blob();
         const imageRef = ref(storage, `posts/${user.uid}/${Date.now()}.jpg`);
-        
         await uploadBytes(imageRef, blob);
         imageUrl = await getDownloadURL(imageRef);
       }
 
-      // Add post data to Firestore
       await addDoc(collection(db, 'posts'), {
         caption: caption,
-        imageUrl: imageUrl, // Will be null if no image is selected
+        imageUrl: imageUrl,
         email: user.email,
         likes: [],
         comments: [],
       });
 
       setIsUploading(false);
-      alert('Postagem realizada com sucesso!');
-      navigation.goBack(); // Navigate back to the previous screen
+      setShowSuccessModal(true); // Mostra o modal de sucesso
     } catch (error) {
       console.error('Erro ao fazer postagem: ', error);
       setIsUploading(false);
@@ -89,15 +83,42 @@ const PostagemScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Modal de Sucesso */}
+      <Modal
+        transparent={true}
+        visible={showSuccessModal}
+        animationType="slide"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successBox}>
+            <Text style={styles.successText}>Postagem realizada com sucesso!</Text>
+            <TouchableOpacity
+              style={styles.okButton}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.goBack(); // Navega de volta ao fechar o modal
+              }}
+            >
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Seta de navegação */}
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
+        <Icon name="arrow-back" size={24} color="#fff" />
+      </TouchableOpacity>
+
       <Text style={styles.heading}>Nova Postagem</Text>
 
-      {/* Image Picker and Display */}
       {selectedImage ? (
         <TouchableOpacity onPress={pickImage}>
           <Image
             source={{ uri: selectedImage }}
             style={styles.selectedImage}
-            resizeMode="contain"  // Ensures the image fits without being cropped
+            resizeMode="contain"
           />
         </TouchableOpacity>
       ) : (
@@ -106,7 +127,6 @@ const PostagemScreen = ({ navigation }) => {
         </TouchableOpacity>
       )}
 
-      {/* Caption Input */}
       <TextInput
         placeholder="Escreva uma legenda..."
         value={caption}
@@ -114,7 +134,6 @@ const PostagemScreen = ({ navigation }) => {
         style={styles.captionInput}
       />
 
-      {/* Post Button */}
       <TouchableOpacity onPress={handlePost} style={styles.postButton} disabled={isUploading}>
         <Text style={styles.postButtonText}>{isUploading ? 'Postando...' : 'Postar'}</Text>
       </TouchableOpacity>
@@ -133,11 +152,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#8a0b07',
     marginBottom: 20,
+    paddingTop: 60,
+    textAlign: 'center',
   },
   selectedImage: {
     width: '100%',
-    height: 200, // Adjust as needed
-    maxHeight: 300,  // Ensure the image doesn't grow too large
+    height: 200,
     borderRadius: 10,
     marginBottom: 20,
   },
@@ -162,6 +182,49 @@ const styles = StyleSheet.create({
   postButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    backgroundColor: '#8a0b07',
+    padding: 10,
+    borderRadius: 10,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  successBox: {
+    width: 250,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  successText: {
+    fontSize: 18,
+    color: '#8a0b07',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  okButton: {
+    backgroundColor: '#8a0b07',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  okButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 
