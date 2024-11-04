@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import { FontAwesome } from 'react-native-vector-icons';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import * as AuthSession from 'expo-auth-session';
+import * as Google from 'expo-auth-session/providers/google';
 
 const db = getFirestore();
 
@@ -14,6 +14,19 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+
+  // Configurando a autenticação do Google
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Substitua pelo Client ID do seu projeto
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+      handleGoogleLogin(credential);
+    }
+  }, [response]);
 
   const handleLogin = async () => {
     setError('');
@@ -47,33 +60,24 @@ export default function LoginScreen({ navigation }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (credential) => {
     try {
-      // Configuração para autenticação OAuth
-      const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=YOUR_CLIENT_ID&redirect_uri=${AuthSession.makeRedirectUri()}&response_type=token&scope=profile email`;
-      
-      const result = await AuthSession.startAsync({ authUrl });
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
+      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
 
-      if (result.type === 'success' && result.params.access_token) {
-        const credential = GoogleAuthProvider.credential(null, result.params.access_token);
-        const userCredential = await signInWithCredential(auth, credential);
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
 
-        const user = userCredential.user;
-        const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-
-          if (userData.autenticacao === 1 || userData.autenticacao === 2) {
-            navigation.navigate('Main');
-          } else if (userData.autenticacao === 3) {
-            navigation.navigate('PainelAdm');
-          } else {
-            setError('Permissão inválida.');
-          }
+        if (userData.autenticacao === 1 || userData.autenticacao === 2) {
+          navigation.navigate('Main');
+        } else if (userData.autenticacao === 3) {
+          navigation.navigate('PainelAdm');
         } else {
-          setError('Dados do usuário não encontrados.');
+          setError('Permissão inválida.');
         }
+      } else {
+        setError('Dados do usuário não encontrados.');
       }
     } catch (error) {
       setError(error.message);
@@ -115,7 +119,7 @@ export default function LoginScreen({ navigation }) {
       </TouchableOpacity>
 
       <Text style={styles.orText}>Ou entre com</Text>
-      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
+      <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()}>
         <FontAwesome name="google" size={24} color="#8a0b07" />
       </TouchableOpacity>
     </View>

@@ -7,7 +7,7 @@ import { auth } from '../config/firebase';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { launchImageLibrary } from 'react-native-image-picker';
-import * as GoogleSignIn from 'expo-google-sign-in';
+import * as Google from 'expo-auth-session/providers/google';
 
 const db = getFirestore();
 const storage = getStorage();
@@ -23,10 +23,17 @@ export default function RegisterScreen({ navigation }) {
   const [profileImage, setProfileImage] = useState(null);
   const [imageUri, setImageUri] = useState('');
 
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: 'YOUR_CLIENT_ID.apps.googleusercontent.com', // Substitua pelo seu Client ID do Google
+  });
+
   useEffect(() => {
-    // Inicialize o Google Sign-In quando o componente for montado
-    GoogleSignIn.initAsync();
-  }, []);
+    if (response?.type === 'success') {
+      const { id_token } = response.params;
+      const credential = GoogleAuthProvider.credential(id_token);
+      handleGoogleLogin(credential);
+    }
+  }, [response]);
 
   const selectProfileImage = () => {
     launchImageLibrary({ mediaType: 'photo' }, (response) => {
@@ -72,26 +79,20 @@ export default function RegisterScreen({ navigation }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = async (credential) => {
     try {
-      const result = await GoogleSignIn.signInAsync();
+      const userCredential = await signInWithCredential(auth, credential);
+      const user = userCredential.user;
 
-      if (result.type === 'success') {
-        const { idToken } = result.user.auth;
-        const credential = GoogleAuthProvider.credential(idToken);
-        const userCredential = await signInWithCredential(auth, credential);
-        const user = userCredential.user;
+      await setDoc(doc(db, 'usuarios', user.uid), {
+        nome: user.displayName || 'Usuário Google',
+        email: user.email,
+        uid: user.uid,
+        profileImageUrl: user.photoURL,
+        autenticacao: 1,
+      });
 
-        await setDoc(doc(db, 'usuarios', user.uid), {
-          nome: user.displayName || 'Usuário Google',
-          email: user.email,
-          uid: user.uid,
-          profileImageUrl: user.photoURL,
-          autenticacao: 1,
-        });
-
-        navigation.navigate('Main');
-      }
+      navigation.navigate('Main');
     } catch (error) {
       setError(error.message);
     }
@@ -152,7 +153,7 @@ export default function RegisterScreen({ navigation }) {
         <Text style={styles.buttonText}>Registrar</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.googleButton} onPress={handleGoogleLogin}>
+      <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()}>
         <FontAwesome name="google" size={24} color="#8a0b07" />
       </TouchableOpacity>
     </View>
