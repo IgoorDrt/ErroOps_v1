@@ -107,9 +107,9 @@ const PostagemScreen = ({ navigation }) => {
       </Modal>
 
       {/* Seta de navegação */}
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Welcome')}>
-        <Icon name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+  <Icon name="arrow-back" size={24} color="#fff" />
+</TouchableOpacity>
 
       <Text style={styles.heading}>Nova Postagem</Text>
 

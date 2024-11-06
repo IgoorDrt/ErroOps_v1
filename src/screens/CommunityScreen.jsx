@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, TextInput, Button } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, TextInput } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
@@ -15,26 +15,48 @@ const CommunityScreen = ({ navigation }) => {
   const [errors, setErrors] = useState([]);
   const [comments, setComments] = useState({});
   const [userEmail, setUserEmail] = useState(null);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [postText, setPostText] = useState('');
+  const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
   const [imageUri, setImageUri] = useState(null);
+  const [postText, setPostText] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedPostImage, setSelectedPostImage] = useState(null);
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (user) setUserEmail(user.email);
+    if (user) {
+      setUserEmail(user.email);
+      const userDocRef = doc(db, 'usuarios', user.uid); // Supondo que você tenha uma coleção 'usuarios'
+      const unsubscribe = onSnapshot(userDocRef, (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          setUserProfileImageUrl(userData.profileImageUrl || null); // Atribui a URL da imagem de perfil
+        }
+      });
 
-    const unsubscribe = onSnapshot(collection(db, 'errors'), (snapshot) => {
-      const errorsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setErrors(errorsData);
-    });
-    return () => unsubscribe();
+      const unsubscribeErrors = onSnapshot(collection(db, 'errors'), (snapshot) => {
+        const errorsData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setErrors(errorsData);
+      });
+      
+      return () => {
+        unsubscribe();
+        unsubscribeErrors();
+      };
+    }
   }, []);
 
   const pickImage = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      alert('Permissão para acessar a galeria é necessária!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
@@ -42,7 +64,7 @@ const CommunityScreen = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImageUri(result.uri);
+      setImageUri(result.assets[0].uri);
     }
   };
 
@@ -60,18 +82,23 @@ const CommunityScreen = ({ navigation }) => {
       const user = auth.currentUser;
       if (user) {
         try {
+          setIsUploading(true);
           const imageUrl = imageUri ? await uploadImage(imageUri) : null;
           await addDoc(collection(db, 'errors'), {
             email: user.email,
             text: postText,
             imageUrl: imageUrl,
+            profileImageUrl: userProfileImageUrl,
             comments: [],
             likes: [],
           });
           setPostText('');
           setImageUri(null);
+          setShowSuccessModal(true);
         } catch (error) {
           console.error("Erro ao postar: ", error);
+        } finally {
+          setIsUploading(false);
         }
       } else {
         console.error("Usuário não está logado.");
@@ -96,23 +123,6 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
-  const postComment = async (errorId, commentText) => {
-    if (commentText.trim()) {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const errorRef = doc(db, 'errors', errorId);
-          await updateDoc(errorRef, {
-            comments: arrayUnion({ email: user.email, commentText }),
-          });
-          setComments((prev) => ({ ...prev, [errorId]: '' }));
-        } catch (error) {
-          console.error("Erro ao postar comentário: ", error);
-        }
-      }
-    }
-  };
-
   const renderError = ({ item }) => {
     const userLiked = item.likes?.includes(userEmail);
 
@@ -124,7 +134,7 @@ const CommunityScreen = ({ navigation }) => {
         </View>
 
         {item.imageUrl && (
-          <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl)}>
+          <TouchableOpacity onPress={() => setSelectedPostImage(item.imageUrl)}>
             <Image source={{ uri: item.imageUrl }} style={styles.errorImage} />
           </TouchableOpacity>
         )}
@@ -139,6 +149,10 @@ const CommunityScreen = ({ navigation }) => {
               style={styles.likeIcon}
             />
             <Text style={styles.likeCount}>{item.likes?.length || 0}</Text>
+          </TouchableOpacity>
+          {/* Ícone de comentários */}
+          <TouchableOpacity onPress={() => navigation.navigate('CommunityCommentScreen', { errorId: item.id })}>
+            <MaterialIcons name="comment" size={24} color="#8a0b07" />
           </TouchableOpacity>
         </View>
 
@@ -159,18 +173,43 @@ const CommunityScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Modal de Sucesso */}
+      <Modal
+        transparent={true}
+        visible={showSuccessModal}
+        animationType="slide"
+        onRequestClose={() => setShowSuccessModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.successBox}>
+            <Text style={styles.successText}>Postagem realizada com sucesso!</Text>
+            <TouchableOpacity
+              style={styles.okButton}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.goBack(); // Navega de volta ao fechar o modal
+              }}
+            >
+              <Text style={styles.okButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <TextInput
         placeholder="Descreva o erro aqui..."
         value={postText}
         onChangeText={setPostText}
         style={styles.input}
       />
-      <Button title="Escolher Imagem" onPress={pickImage} />
-      {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
-      <TouchableOpacity style={styles.button} onPress={postError}>
-        <Text style={styles.buttonText}>Postar Erro</Text>
+      <TouchableOpacity style={styles.chooseImageButton} onPress={pickImage}>
+        <Text style={styles.chooseImageButtonText}>Escolher Imagem</Text>
       </TouchableOpacity>
-      
+      {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
+      <TouchableOpacity style={styles.button} onPress={postError} disabled={isUploading}>
+        <Text style={styles.buttonText}>{isUploading ? 'Postando...' : 'Postar Erro'}</Text>
+      </TouchableOpacity>
+
       <FlatList
         data={errors}
         renderItem={renderError}
@@ -178,22 +217,30 @@ const CommunityScreen = ({ navigation }) => {
         style={styles.errorList}
       />
 
-      {selectedImage && (
+      {selectedPostImage && (
         <Modal
           transparent={true}
-          visible={!!selectedImage}
-          onRequestClose={() => setSelectedImage(null)}
+          visible={!!selectedPostImage}
+          onRequestClose={() => setSelectedPostImage(null)}
         >
           <View style={styles.modalContainer}>
             <BlurView intensity={100} style={styles.blurBackground}>
-              <Pressable onPress={() => setSelectedImage(null)} style={styles.closeButton}>
+              <Pressable onPress={() => setSelectedPostImage(null)} style={styles.closeButton}>
                 <Text style={styles.closeText}>Fechar</Text>
               </Pressable>
-              <Image source={{ uri: selectedImage }} style={styles.fullscreenImage} resizeMode="contain" />
+              <Image source={{ uri: selectedPostImage }} style={styles.fullscreenImage} resizeMode="contain" />
             </BlurView>
           </View>
         </Modal>
       )}
+
+      {/* Botão para navegar para a SearchChatScreen */}
+      <TouchableOpacity 
+        style={styles.chatButton} 
+        onPress={() => navigation.navigate('SearchChatScreen')}
+      >
+        <MaterialIcons name="chat" size={30} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -223,6 +270,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  chooseImageButton: {
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  chooseImageButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   previewImage: {
     width: '100%',
     height: 200,
@@ -235,7 +293,7 @@ const styles = StyleSheet.create({
   errorBox: {
     backgroundColor: '#f7f7f7',
     padding: 15,
-    marginBottom: 15,
+    marginBottom: 20,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#ddd',
@@ -269,10 +327,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
+    marginBottom: 10,
   },
   likeSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 15,
   },
   likeIcon: {
     marginRight: 5,
@@ -327,6 +387,51 @@ const styles = StyleSheet.create({
     color: '#8a0b07',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  successBox: {
+    width: 250,
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  successText: {
+    fontSize: 18,
+    color: '#8a0b07',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  okButton: {
+    backgroundColor: '#8a0b07',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+  },
+  okButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  chatButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

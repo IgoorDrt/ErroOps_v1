@@ -114,6 +114,11 @@ export default function RegisterScreen({ navigation }) {
 
       {imageUri ? <Image source={{ uri: imageUri }} style={styles.profileImage} /> : null}
 
+      {/* Botão para escolher foto */}
+      <TouchableOpacity style={styles.button} onPress={selectProfileImage}>
+        <Text style={styles.buttonText}>Escolher Foto</Text>
+      </TouchableOpacity>
+
       <TextInput
         style={styles.input}
         placeholder="Nome"

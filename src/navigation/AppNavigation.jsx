@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { View, TouchableOpacity, StyleSheet, Modal, Text, Dimensions, TouchableWithoutFeedback } from "react-native";
+import React, { useState, useEffect, useRef} from "react";
+import { View, TouchableOpacity, StyleSheet, Modal, Text, Animated, Dimensions, TouchableWithoutFeedback } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
@@ -9,7 +9,7 @@ import { getAuth, signOut } from "firebase/auth";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { useTheme } from "react-native-paper";
-
+import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
 // Importando suas telas
 import SplashScreen from "../screens/SplashScreen";
 import WelcomeScreen from "../screens/WelcomeScreen";
@@ -29,6 +29,7 @@ import UserAdminScreen from "../screens/UserAdminScreen";
 import ControleErroScreen from "../screens/ControleErroScreen";
 import ControleComuScreen from "../screens/ControleComuScreen";
 import PostagemScreen from "../screens/PostagemScreen";
+import CommunityCommentScreen from "../screens/CommunityCommentScreen";
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -126,7 +127,19 @@ const Stack = createNativeStackNavigator();
 const Tab = createMaterialBottomTabNavigator();
 
 export default function AppNavigator() {
+  const [menuVisible, setMenuVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-Dimensions.get("window").width * 0.5)).current; // Começa fora da tela
+
+  const toggleMenu = () => {
+    setMenuVisible(!menuVisible);
+    Animated.timing(slideAnim, {
+      toValue: menuVisible ? -Dimensions.get("window").width * 0.5 : 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Splash">
         <Stack.Screen
@@ -152,6 +165,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="ControleErroScreen"
           component={ControleErroScreen}
+          options={{ headerShown: false }}
+        />
+         <Stack.Screen
+          name="CommunityCommentScreen"
+          component={CommunityCommentScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
@@ -200,7 +218,7 @@ export default function AppNavigator() {
           component={CommentScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
+         <Stack.Screen
           name="Main"
           component={TabNavigator}
           options={{
@@ -208,8 +226,12 @@ export default function AppNavigator() {
             headerStyle: { backgroundColor: "#8a0b07" },
             headerTintColor: "#fff",
             headerTitleAlign: "center",
-            title: "", // Remove o título da tela Main
-            headerLeft: null, // Remove a seta da esquerda
+            title: "",
+            headerLeft: () => (
+              <TouchableOpacity onPress={toggleMenu} style={{ paddingLeft: 20 }}>
+                <MaterialCommunityIcons name="menu" size={24} color="#fff" />
+              </TouchableOpacity>
+            ),
           }}
         />
 
@@ -229,7 +251,29 @@ export default function AppNavigator() {
           })}
         />
       </Stack.Navigator>
+     {/* Modal com Animação de Slide */}
+     <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
+          <View style={styles.overlay}>
+            <TouchableWithoutFeedback onPress={toggleMenu}>
+              <View style={styles.overlayBackground} />
+            </TouchableWithoutFeedback>
+            <Animated.View style={[styles.menuContainer2, { transform: [{ translateX: slideAnim }] }]}>
+              <ScrollView contentContainerStyle={styles.menuContent}>
+                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Meus posts e comentários")}>
+                  <Text style={styles.menuText2}>Meus Posts e Comentários</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Política de Privacidade")}>
+                  <Text style={styles.menuText2}>Política de Privacidade</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Termos de Uso")}>
+                  <Text style={styles.menuText2}>Termos de Uso</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </Animated.View>
+          </View>
+        </Modal>
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
 
@@ -327,5 +371,34 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#ddd",
     width: "100%",
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-start",
+  },
+  overlayBackground: {
+    flex: 1,
+  },
+  menuContainer2: {
+    backgroundColor: "white",
+    width: "50%", // Largura do menu lateral
+    height: "100%",
+    position: "absolute",
+    left: 0,
+    top: 0,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 5,
+    padding: 20,
+  },
+  menuContent: {
+    paddingVertical: 20,
+  },
+  menuItem2: {
+    paddingVertical: 15,
+  },
+  menuText2: {
+    fontSize: 16,
   },
 });
