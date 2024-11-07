@@ -1,22 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, StatusBar, ScrollView } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import { MaterialIcons } from '@expo/vector-icons'; // Importação do Expo
+import { MaterialIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
   authDomain: "erroops-93c8a.firebaseapp.com",
   projectId: "erroops-93c8a",
   storageBucket: "erroops-93c8a.appspot.com",
   messagingSenderId: "694707365976",
-  appId: "1:694707365976:web:440ace5273d2c0aa4c022d"
+  appId: "1:694707365976:web:440ace5273d2c0aa4c022d",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -60,7 +58,7 @@ const EmpresaScreen = ({ navigation }) => {
         const userLiked = post.likes?.includes(user.email);
 
         await updateDoc(postRef, {
-          likes: userLiked ? arrayRemove(user.email) : arrayUnion(user.email)
+          likes: userLiked ? arrayRemove(user.email) : arrayUnion(user.email),
         });
       } catch (error) {
         console.error("Erro ao curtir postagem: ", error);
@@ -97,7 +95,7 @@ const EmpresaScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.commentSection}>
-            <MaterialIcons name="chat-bubble-outline" size={24} color="#888" style={styles.commentIcon} />
+            <MaterialIcons name="chat-bubble-outline" size={24} color="#8a0b07" />
             <Text style={styles.commentCount}>{item.comments?.length || 0}</Text>
           </TouchableOpacity>
         </View>
@@ -106,7 +104,12 @@ const EmpresaScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+
+      <Text style={styles.title}>Postagens da Empresa</Text>
+      <Text style={styles.subtitle}>Veja e curta postagens recentes da nossa empresa.</Text>
+
       <FlatList
         data={posts}
         renderItem={renderPost}
@@ -114,21 +117,8 @@ const EmpresaScreen = ({ navigation }) => {
         style={styles.postList}
       />
 
-      {userAuth === 2 && (
-        <TouchableOpacity
-          style={styles.floatingButton}
-          onPress={() => navigation.navigate('PostagemScreen')}
-        >
-          <MaterialIcons name="add" size={30} color="white" />
-        </TouchableOpacity>
-      )}
-
       {selectedImage && (
-        <Modal
-          transparent={true}
-          visible={!!selectedImage}
-          onRequestClose={() => setSelectedImage(null)}
-        >
+        <Modal transparent={true} visible={!!selectedImage} onRequestClose={() => setSelectedImage(null)}>
           <View style={styles.modalContainer}>
             <BlurView intensity={100} style={styles.blurBackground}>
               <Pressable onPress={() => setSelectedImage(null)} style={styles.closeButton}>
@@ -139,30 +129,35 @@ const EmpresaScreen = ({ navigation }) => {
           </View>
         </Modal>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     backgroundColor: '#fff',
   },
-  postList: {
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#8a0b07',
+    textAlign: 'center',
     marginTop: 20,
   },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   postBox: {
-    backgroundColor: '#f7f7f7',
-    padding: 15,
-    marginBottom: 15,
+    backgroundColor: '#f4f4f4',
+    padding: 20,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 5,
+    marginBottom: 15,
   },
   userHeader: {
     flexDirection: 'row',
@@ -209,23 +204,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginLeft: 15,
   },
-  commentIcon: {
-    marginRight: 5,
-  },
   commentCount: {
     color: '#333',
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#8a0b07',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
   },
   modalContainer: {
     flex: 1,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, TextInput } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, StatusBar, TextInput, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -13,7 +13,6 @@ const storage = getStorage();
 
 const CommunityScreen = ({ navigation }) => {
   const [errors, setErrors] = useState([]);
-  const [comments, setComments] = useState({});
   const [userEmail, setUserEmail] = useState(null);
   const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
   const [imageUri, setImageUri] = useState(null);
@@ -26,11 +25,10 @@ const CommunityScreen = ({ navigation }) => {
     const user = auth.currentUser;
     if (user) {
       setUserEmail(user.email);
-      const userDocRef = doc(db, 'usuarios', user.uid); // Supondo que você tenha uma coleção 'usuarios'
+      const userDocRef = doc(db, 'usuarios', user.uid);
       const unsubscribe = onSnapshot(userDocRef, (doc) => {
         if (doc.exists()) {
-          const userData = doc.data();
-          setUserProfileImageUrl(userData.profileImageUrl || null); // Atribui a URL da imagem de perfil
+          setUserProfileImageUrl(doc.data().profileImageUrl || null);
         }
       });
 
@@ -125,6 +123,7 @@ const CommunityScreen = ({ navigation }) => {
 
   const renderError = ({ item }) => {
     const userLiked = item.likes?.includes(userEmail);
+    const commentCount = item.comments ? item.comments.length : 0;
 
     return (
       <View style={styles.errorBox}>
@@ -150,21 +149,10 @@ const CommunityScreen = ({ navigation }) => {
             />
             <Text style={styles.likeCount}>{item.likes?.length || 0}</Text>
           </TouchableOpacity>
-          {/* Ícone de comentários */}
-          <TouchableOpacity onPress={() => navigation.navigate('CommunityCommentScreen', { errorId: item.id })}>
-            <MaterialIcons name="comment" size={24} color="#8a0b07" />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.commentSection}>
-          <TextInput
-            placeholder="Comente aqui..."
-            value={comments[item.id] || ''}
-            onChangeText={(text) => setComments({ ...comments, [item.id]: text })}
-            style={styles.commentInput}
-          />
-          <TouchableOpacity onPress={() => postComment(item.id, comments[item.id])}>
-            <Text style={styles.commentButton}>Comentar</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('CommunityCommentScreen', { errorId: item.id })} style={styles.commentSection}>
+            <MaterialIcons name="comment" size={24} color="#8a0b07" />
+            <Text style={styles.commentCount}>{commentCount}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -172,29 +160,11 @@ const CommunityScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Modal de Sucesso */}
-      <Modal
-        transparent={true}
-        visible={showSuccessModal}
-        animationType="slide"
-        onRequestClose={() => setShowSuccessModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.successBox}>
-            <Text style={styles.successText}>Postagem realizada com sucesso!</Text>
-            <TouchableOpacity
-              style={styles.okButton}
-              onPress={() => {
-                setShowSuccessModal(false);
-                navigation.goBack(); // Navega de volta ao fechar o modal
-              }}
-            >
-              <Text style={styles.okButtonText}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+      
+      <Text style={styles.title}>Comunidade ErrOops</Text>
+      <Text style={styles.subtitle}>Compartilhe e resolva erros com outros usuários.</Text>
 
       <TextInput
         placeholder="Descreva o erro aqui..."
@@ -218,11 +188,7 @@ const CommunityScreen = ({ navigation }) => {
       />
 
       {selectedPostImage && (
-        <Modal
-          transparent={true}
-          visible={!!selectedPostImage}
-          onRequestClose={() => setSelectedPostImage(null)}
-        >
+        <Modal transparent={true} visible={!!selectedPostImage} onRequestClose={() => setSelectedPostImage(null)}>
           <View style={styles.modalContainer}>
             <BlurView intensity={100} style={styles.blurBackground}>
               <Pressable onPress={() => setSelectedPostImage(null)} style={styles.closeButton}>
@@ -233,42 +199,36 @@ const CommunityScreen = ({ navigation }) => {
           </View>
         </Modal>
       )}
-
-      {/* Botão para navegar para a SearchChatScreen */}
-      <TouchableOpacity 
-        style={styles.chatButton} 
-        onPress={() => navigation.navigate('SearchChatScreen')}
-      >
-        <MaterialIcons name="chat" size={30} color="#fff" />
-      </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     backgroundColor: '#fff',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#8a0b07',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
     borderColor: '#8a0b07',
     padding: 10,
-    marginBottom: 10,
+    marginVertical: 20,
     borderRadius: 5,
-    color: '#333',
-  },
-  button: {
-    backgroundColor: '#8a0b07',
-    padding: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
   chooseImageButton: {
     backgroundColor: '#8a0b07',
@@ -287,16 +247,25 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderRadius: 10,
   },
+  button: {
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   errorList: {
     marginTop: 20,
   },
   errorBox: {
-    backgroundColor: '#f7f7f7',
-    padding: 15,
-    marginBottom: 20,
+    backgroundColor: '#f4f4f4',
+    padding: 20,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    marginBottom: 15,
   },
   userHeader: {
     flexDirection: 'row',
@@ -327,7 +296,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 10,
   },
   likeSection: {
     flexDirection: 'row',
@@ -341,22 +309,12 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   commentSection: {
-    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  commentInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 5,
-    flex: 1,
-    marginRight: 10,
-    borderRadius: 5,
+  commentCount: {
     color: '#333',
-  },
-  commentButton: {
-    color: '#8a0b07',
-    fontWeight: 'bold',
+    marginLeft: 5,
   },
   modalContainer: {
     flex: 1,
@@ -387,51 +345,6 @@ const styles = StyleSheet.create({
     color: '#8a0b07',
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  successBox: {
-    width: 250,
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  successText: {
-    fontSize: 18,
-    color: '#8a0b07',
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  okButton: {
-    backgroundColor: '#8a0b07',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  okButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  chatButton: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: '#8a0b07',
-    padding: 12,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });
 

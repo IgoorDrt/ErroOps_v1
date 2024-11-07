@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Import do ícone
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -28,14 +28,13 @@ const SearchScreen = () => {
 
   const fetchRandomErrors = async () => {
     try {
-      const q = collection(db, 'error'); // Busca todos os erros
+      const q = collection(db, 'error');
       const querySnapshot = await getDocs(q);
       const allErrors = querySnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
 
-      // Seleciona até 3 erros aleatórios
       const randomErrors = allErrors.sort(() => 0.5 - Math.random()).slice(0, 3);
       setSuggestedErrors(randomErrors);
     } catch (error) {
@@ -54,7 +53,7 @@ const SearchScreen = () => {
     }
 
     setLoading(true);
-    setResults([]); // Limpa os resultados anteriores
+    setResults([]);
 
     try {
       const q = collection(db, 'error');
@@ -89,15 +88,12 @@ const SearchScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Icon name="arrow-back" size={24} color="#8a0b07" />
-      </TouchableOpacity>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    
 
       <Text style={styles.title}>ErrOops</Text>
       <Text style={styles.subtitle}>Como podemos te ajudar hoje?</Text>
 
-      {/* Sugestões dinâmicas de erros */}
       <View style={styles.errorButtons}>
         {suggestedErrors.map((error, index) => (
           <TouchableOpacity
@@ -116,7 +112,6 @@ const SearchScreen = () => {
         onChangeText={setSearchTerm}
       />
 
-      {/* Botão de Pesquisa */}
       <TouchableOpacity style={styles.searchButton} onPress={() => searchErrors(searchTerm)}>
         <Text style={styles.searchButtonText}>Pesquisar</Text>
       </TouchableOpacity>
@@ -129,15 +124,16 @@ const SearchScreen = () => {
         keyExtractor={(item) => item.id}
         style={styles.resultList}
       />
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     backgroundColor: '#fff',
-    padding: 20,
   },
   backButton: {
     alignSelf: 'flex-start',

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef} from "react";
+import React, { useState, useEffect, useRef} from "react"; 
 import { View, TouchableOpacity, StyleSheet, Modal, Text, Animated, Dimensions, TouchableWithoutFeedback } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -30,6 +30,7 @@ import ControleErroScreen from "../screens/ControleErroScreen";
 import ControleComuScreen from "../screens/ControleComuScreen";
 import PostagemScreen from "../screens/PostagemScreen";
 import CommunityCommentScreen from "../screens/CommunityCommentScreen";
+import MyPostsScreen from "../screens/MyPostsScreen";
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -122,9 +123,12 @@ const ProfileMenu = () => {
   );
 };
 
+
+
 // Setup de Navegação
 const Stack = createNativeStackNavigator();
 const Tab = createMaterialBottomTabNavigator();
+
 
 export default function AppNavigator() {
   const [menuVisible, setMenuVisible] = useState(false);
@@ -138,6 +142,8 @@ export default function AppNavigator() {
       useNativeDriver: true,
     }).start();
   };
+
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
@@ -219,6 +225,11 @@ export default function AppNavigator() {
           options={{ headerShown: false }}
         />
          <Stack.Screen
+          name="MyPosts"
+          component={MyPostsScreen}
+          options={{ headerShown: false }}
+        />
+         <Stack.Screen
           name="Main"
           component={TabNavigator}
           options={{
@@ -276,6 +287,7 @@ export default function AppNavigator() {
     </GestureHandlerRootView>
   );
 }
+
 
 // Tab Navigation
 function TabNavigator() {
