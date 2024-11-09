@@ -163,7 +163,7 @@ const CommunityScreen = ({ navigation }) => {
 
         {item.imageUrl && (
           <TouchableOpacity onPress={() => setSelectedPostImage(item.imageUrl)}>
-            <Image source={{ uri: item.imageUrl }} style={styles.errorImage} />
+            <Image source={{ uri: item.imageUrl }} style={styles.errorImage} resizeMode="cover" />
           </TouchableOpacity>
         )}
         <Text style={styles.errorText}>{item.text || 'Erro sem descrição'}</Text>
@@ -207,7 +207,7 @@ const CommunityScreen = ({ navigation }) => {
         </TouchableOpacity>
         {imageUri && (
           <View style={styles.imagePreviewContainer}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+            <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
             <TouchableOpacity style={styles.removeImageButton} onPress={removeImage}>
               <MaterialIcons name="close" size={24} color="#fff" />
             </TouchableOpacity>
@@ -297,8 +297,9 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 200,
+    height: 250, // Ajuste a altura para dar mais espaço à imagem
     borderRadius: 10,
+    resizeMode: 'contain', // Exibir a imagem inteira
   },
   removeImageButton: {
     position: 'absolute',
@@ -349,9 +350,10 @@ const styles = StyleSheet.create({
   },
   errorImage: {
     width: '100%',
-    height: 200,
+    height: 250, // Aumentar a altura para exibir a imagem completa
     marginBottom: 10,
     borderRadius: 10,
+    resizeMode: 'contain', // Garante que a imagem seja exibida inteira
   },
   actionRow: {
     flexDirection: 'row',
@@ -378,10 +380,6 @@ const styles = StyleSheet.create({
     color: '#333',
     marginLeft: 5,
   },
-  timestamp: {
-    fontSize: 12,
-    color: '#666',
-  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -400,6 +398,7 @@ const styles = StyleSheet.create({
     width: '90%',
     height: '70%',
     borderRadius: 10,
+    resizeMode: 'contain', // Exibe a imagem inteira em modal também
   },
   closeButton: {
     position: 'absolute',
@@ -423,5 +422,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
 
 export default CommunityScreen;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons'; // Biblioteca de ícones para a flecha
 import { db } from '../config/firebase';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -49,9 +49,9 @@ const ControleErroScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       {/* Flecha para voltar ao Menu de Administração */}
-      <TouchableOpacity onPress={() => navigation.navigate('PainelAdm')} style={styles.backButton}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color="#8a0b07" />
       </TouchableOpacity>
 
@@ -120,12 +120,12 @@ const ControleErroScreen = ({ navigation }) => {
           </View>
         )}
       />
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  container: { flexGrow: 1, padding: 16, backgroundColor: '#fff' },
   backButton: { marginBottom: 16 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#8a0b07', textAlign: 'center', marginBottom: 16 },
   input: { borderWidth: 1, borderColor: '#8a0b07', padding: 12, marginBottom: 16, borderRadius: 4, color: '#000' },

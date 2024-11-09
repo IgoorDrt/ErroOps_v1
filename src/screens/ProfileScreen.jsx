@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '../config/firebase';
 import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
@@ -113,65 +113,72 @@ const ProfileScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Editar Perfil</Text>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <Text style={styles.heading}>Editar Perfil</Text>
 
-      <TouchableOpacity onPress={pickImage}>
-        <Image
-          source={{ uri: photoURL || 'https://placekitten.com/200/200' }} // Imagem padrão
-          style={styles.profileImage}
+        <TouchableOpacity onPress={pickImage}>
+          <Image
+            source={{ uri: photoURL || 'https://placekitten.com/200/200' }} // Imagem padrão
+            style={styles.profileImage}
+          />
+        </TouchableOpacity>
+        <Text style={styles.imageText}>Toque para atualizar a foto</Text>
+
+        <TextInput
+          placeholder="Nome"
+          value={displayName}
+          onChangeText={setDisplayName}
+          style={styles.input}
         />
-      </TouchableOpacity>
-      <Text style={styles.imageText}>Toque para atualizar a foto</Text>
 
-      <TextInput
-        placeholder="Nome"
-        value={displayName}
-        onChangeText={setDisplayName}
-        style={styles.input}
-      />
+        <TextInput
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          style={styles.input}
+          keyboardType="email-address"
+        />
 
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-        keyboardType="email-address"
-      />
+        <TouchableOpacity onPress={updateProfile} style={styles.saveButton}>
+          <Text style={styles.saveButtonText}>Salvar</Text>
+        </TouchableOpacity>
 
-      <Button title="Salvar" onPress={updateProfile} color="#8a0b07" />
+        <TouchableOpacity onPress={resetPassword} style={styles.resetPasswordButton}>
+          <Text style={styles.resetPasswordButtonText}>Redefinir Senha</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={resetPassword} style={styles.resetPasswordButton}>
-        <Text style={styles.resetPasswordButtonText}>Redefinir Senha</Text>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={showConfirmDelete} style={styles.deleteButton}>
+          <Text style={styles.deleteButtonText}>Excluir Conta</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={showConfirmDelete} style={styles.deleteButton}>
-        <Text style={styles.deleteButtonText}>Excluir Conta</Text>
-      </TouchableOpacity>
-
-      {/* Modal de Sucesso */}
-      <Modal
-        transparent={true}
-        visible={showSuccessModal}
-        animationType="slide"
-      >
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>Perfil atualizado com sucesso!</Text>
-            <TouchableOpacity onPress={closeSuccessModal} style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>OK</Text>
-            </TouchableOpacity>
+        {/* Modal de Sucesso */}
+        <Modal
+          transparent={true}
+          visible={showSuccessModal}
+          animationType="slide"
+        >
+          <View style={styles.modalBackground}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalText}>Perfil atualizado com sucesso!</Text>
+              <TouchableOpacity onPress={closeSuccessModal} style={styles.modalButton}>
+                <Text style={styles.modalButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    padding: 20,
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f5f5f5',
   },
   heading: {
@@ -199,8 +206,19 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
   },
+  saveButton: {
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 10, // Adicionando borderRadius ao botão de salvar
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  saveButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   resetPasswordButton: {
-    marginTop: 20,
+    marginTop: 10, // Espaçamento entre os botões
     padding: 10,
     backgroundColor: '#8a0b07',
     borderRadius: 10,
@@ -211,7 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   deleteButton: {
-    marginTop: 'auto',
+    marginTop: 10, // Espaçamento entre os botões
     padding: 10,
     backgroundColor: '#8a0b07',
     borderRadius: 10,

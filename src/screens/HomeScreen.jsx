@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
@@ -27,38 +27,46 @@ const HomeScreen = () => {
     fetchUserName();
   }, []);
 
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.welcomeMessage}>Bem-vindo, {userName}!</Text>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <Text style={styles.welcomeMessage}>Bem-vindo, {userName}!</Text>
 
-      {/* Card sobre a empresa */}
-      <View style={styles.infoCard}>
-        <Image source={require('../../assets/image.png')} style={styles.companyImage} />
-        <View style={styles.companyInfo}>
-          <Text style={styles.cardTitle}>Sobre</Text>
-          <Text style={styles.companyText}>
-            A ErrOops é sua parceira para resolver problemas de código. Estamos aqui para ajudar você a superar desafios, fornecer suporte técnico e aprimorar suas habilidades em programação. Junte-se à nossa comunidade e descubra soluções práticas para seus erros de código!
-          </Text>
+        {/* Card sobre a empresa */}
+        <View style={styles.infoCard}>
+          <Image source={require('../../assets/image.png')} style={styles.companyImage} />
+          <View style={styles.companyInfo}>
+            <Text style={styles.cardTitle}>Sobre</Text>
+            <Text style={styles.companyText}>
+              A ErrOops é sua parceira para resolver problemas de código. Estamos aqui para ajudar você a superar desafios, fornecer suporte técnico e aprimorar suas habilidades em programação. Junte-se à nossa comunidade e descubra soluções práticas para seus erros de código!
+            </Text>
+          </View>
+        </View>
+
+        {/* Card sobre a equipe */}
+        <View style={styles.infoCard}>
+          <Image source={require('../../assets/team.png')} style={styles.companyImage} />
+          <View style={styles.companyInfo}>
+            <Text style={styles.cardTitle}>Nossa Equipe</Text>
+            <Text style={styles.companyText}>
+              Na ErrOops, trabalhamos juntos para oferecer o melhor suporte e compartilhar conhecimentos que facilitam a resolução de erros de programação. Conte conosco para evoluir em sua jornada!
+            </Text>
+          </View>
         </View>
       </View>
-
-      {/* Card sobre a equipe */}
-      <View style={styles.infoCard}>
-        <Image source={require('../../assets/team.png')} style={styles.companyImage} />
-        <View style={styles.companyInfo}>
-          <Text style={styles.cardTitle}>Nossa Equipe</Text>
-          <Text style={styles.companyText}>
-            Na ErrOops, trabalhamos juntos para oferecer o melhor suporte e compartilhar conhecimentos que facilitam a resolução de erros de programação. Conte conosco para evoluir em sua jornada!
-          </Text>
-        </View>
-      </View>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 10, backgroundColor: '#f5f5f5' },
+  scrollContainer: {
+    paddingVertical: 10,
+  },
+  container: {
+    flex: 1,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+  },
   welcomeMessage: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -75,19 +83,25 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   companyImage: {
-    width: 150,  // Aumentando o tamanho da imagem
-    height: 150, // Aumentando o tamanho da imagem
+    width: 150,
+    height: 150,
     borderRadius: 8,
     marginRight: 20,
   },
-  companyInfo: { flex: 1 },
+  companyInfo: {
+    flex: 1,
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 10,
     color: '#8a0b07',
   },
-  companyText: { fontSize: 14, color: '#555', textAlign: 'justify' },
+  companyText: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'justify',
+  },
 });
 
 export default HomeScreen;
