@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, TextInput, FlatList, Text, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { collection, query, getDocs, onSnapshot, orderBy, addDoc, doc, updateDoc, Timestamp, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
-import { db, auth } from '../config/firebase'; 
+import { db, auth } from '../config/firebase';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-// Função para verificar ou criar chat
 const findOrCreateChat = async (user1, user2) => {
   try {
     const q = query(
@@ -41,14 +40,9 @@ const findOrCreateChat = async (user1, user2) => {
   }
 };
 
-// Função para enviar uma mensagem
 const sendMessage = async (chatId, message, senderEmail) => {
   try {
-    if (!senderEmail) {
-      throw new Error('O email do remetente está indefinido');
-    }
-
-    if (!chatId || !message) {
+    if (!senderEmail || !chatId || !message) {
       throw new Error('Campos obrigatórios não definidos');
     }
 
@@ -71,7 +65,6 @@ const sendMessage = async (chatId, message, senderEmail) => {
   }
 };
 
-// Função para iniciar ou continuar um chat
 const startChat = async (loggedUser, otherUser, navigation) => {
   try {
     if (!loggedUser || !loggedUser.email) {
@@ -131,13 +124,13 @@ const SearchChatScreen = ({ navigation }) => {
     if (loggedUser) {
       const q = query(
         collection(db, 'chats'),
-        orderBy('lastMessageTime', 'desc')
+        orderBy('lastMessageTime', 'desc') // Ordena pelo último envio de mensagem
       );
       const unsubscribe = onSnapshot(q, (querySnapshot) => {
         const chatList = querySnapshot.docs
           .filter((doc) => {
             const chatUsers = doc.data().users || [];
-            return Array.isArray(chatUsers) && loggedUser && loggedUser.email && chatUsers.indexOf(loggedUser.email) !== -1;
+            return Array.isArray(chatUsers) && loggedUser && chatUsers.includes(loggedUser.email);
           })
           .map((doc) => ({
             id: doc.id,
@@ -181,25 +174,20 @@ const SearchChatScreen = ({ navigation }) => {
   };
 
   const renderChat = ({ item }) => {
-    const otherUserEmail = item.users && loggedUser && Array.isArray(item.users) && item.users.find((email) => email !== loggedUser.email);
-    
-    if (!otherUserEmail) return null;
-
-    const otherUser = otherUserEmail && users ? users.find((user) => user.email === otherUserEmail) : null;
-
-    if (!otherUser) return null;
+    const otherUserEmail = item.users.find((email) => email !== loggedUser.email);
+    const otherUser = users.find((user) => user.email === otherUserEmail);
 
     return (
       <TouchableOpacity style={styles.conversationItem} onPress={() => startChat(loggedUser, otherUser, navigation)}>
         <Image
-          source={otherUser.profileImageUrl ? { uri: otherUser.profileImageUrl } : require('../../assets/ErrOops.png')}
+          source={otherUser?.profileImageUrl ? { uri: otherUser.profileImageUrl } : require('../../assets/ErrOops.png')}
           style={styles.profileImage}
           placeholder="blur"
           contentFit="cover"
           transition={1000}
         />
         <View style={styles.conversationText}>
-          <Text style={styles.conversationName}>{otherUser.nome || 'Usuário Desconhecido'}</Text>
+          <Text style={styles.conversationName}>{otherUser?.nome || 'Usuário Desconhecido'}</Text>
           <Text style={styles.lastMessage}>
             {item.lastMessage && item.lastMessage.trim() !== '' ? item.lastMessage : 'Sem mensagens'}
           </Text>
@@ -218,27 +206,8 @@ const SearchChatScreen = ({ navigation }) => {
     );
   };
 
-  const renderUserSuggestions = () => {
-    const filteredUsers = users.filter((user) =>
-      user.nome.toLowerCase().includes(search.toLowerCase()) || 
-      user.email.toLowerCase().includes(search.toLowerCase())
-    );
-
-    return (
-      <FlatList
-        data={filteredUsers}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.suggestionItem} onPress={() => startChat(loggedUser, item, navigation)}>
-            <Text style={styles.suggestionText}>{item.nome} ({item.email})</Text>
-          </TouchableOpacity>
-        )}
-      />
-    );
-  };
-
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
       <Text style={styles.welcomeMessage}>Conversas</Text>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -251,8 +220,6 @@ const SearchChatScreen = ({ navigation }) => {
           style={styles.searchInput}
         />
       </View>
-      {search ? renderUserSuggestions() : null}
-
       {isLoading ? (
         <ActivityIndicator size="large" color="#8a0b07" />
       ) : (
@@ -262,15 +229,16 @@ const SearchChatScreen = ({ navigation }) => {
           renderItem={renderChat}
         />
       )}
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 10,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
   },
   welcomeMessage: {
     fontSize: 18,
@@ -350,20 +318,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
-  },
-  suggestionItem: {
-    padding: 12,
-    backgroundColor: '#fff',
-    marginBottom: 10,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-  },
-  suggestionText: {
-    color: '#8a0b07',
-    fontSize: 16,
   },
 });
 

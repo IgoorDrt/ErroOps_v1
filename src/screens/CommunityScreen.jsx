@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, StatusBar, TextInput, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, Timestamp, query, orderBy } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -32,7 +32,9 @@ const CommunityScreen = ({ navigation }) => {
         }
       });
 
-      const unsubscribeErrors = onSnapshot(collection(db, 'errors'), (snapshot) => {
+      const errorsCollection = collection(db, 'errors');
+      const errorsQuery = query(errorsCollection, orderBy('timestamp', 'desc'));
+      const unsubscribeErrors = onSnapshot(errorsQuery, (snapshot) => {
         const errorsData = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -66,6 +68,10 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
+  const removeImage = () => {
+    setImageUri(null);
+  };
+
   const uploadImage = async (uri) => {
     if (!uri) return null;
     const response = await fetch(uri);
@@ -89,6 +95,7 @@ const CommunityScreen = ({ navigation }) => {
             profileImageUrl: userProfileImageUrl,
             comments: [],
             likes: [],
+            timestamp: Timestamp.now(),
           });
           setPostText('');
           setImageUri(null);
@@ -121,6 +128,26 @@ const CommunityScreen = ({ navigation }) => {
     }
   };
 
+  const formatTimeSince = (timestamp) => {
+    const now = new Date();
+    const postDate = timestamp.toDate();
+    const diffInMs = now - postDate;
+    const diffInSeconds = Math.floor(diffInMs / 1000);
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} s atrás`;
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} min atrás`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} h atrás`;
+    } else {
+      return `${diffInDays} d atrás`;
+    }
+  };
+
   const renderError = ({ item }) => {
     const userLiked = item.likes?.includes(userEmail);
     const commentCount = item.comments ? item.comments.length : 0;
@@ -129,7 +156,9 @@ const CommunityScreen = ({ navigation }) => {
       <View style={styles.errorBox}>
         <View style={styles.userHeader}>
           <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
-          <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
+          <Text style={styles.username}>
+            {item.email || 'Usuário desconhecido'} - {formatTimeSince(item.timestamp)}
+          </Text>
         </View>
 
         {item.imageUrl && (
@@ -160,32 +189,41 @@ const CommunityScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
+    <View style={styles.container}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       
-      <Text style={styles.title}>Comunidade ErrOops</Text>
-      <Text style={styles.subtitle}>Compartilhe e resolva erros com outros usuários.</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.title}>Comunidade ErrOops</Text>
+        <Text style={styles.subtitle}>Compartilhe e resolva erros com outros usuários.</Text>
 
-      <TextInput
-        placeholder="Descreva o erro aqui..."
-        value={postText}
-        onChangeText={setPostText}
-        style={styles.input}
-      />
-      <TouchableOpacity style={styles.chooseImageButton} onPress={pickImage}>
-        <Text style={styles.chooseImageButtonText}>Escolher Imagem</Text>
-      </TouchableOpacity>
-      {imageUri && <Image source={{ uri: imageUri }} style={styles.previewImage} />}
-      <TouchableOpacity style={styles.button} onPress={postError} disabled={isUploading}>
-        <Text style={styles.buttonText}>{isUploading ? 'Postando...' : 'Postar Erro'}</Text>
-      </TouchableOpacity>
+        <TextInput
+          placeholder="Descreva o erro aqui..."
+          value={postText}
+          onChangeText={setPostText}
+          style={styles.input}
+        />
+        <TouchableOpacity style={styles.chooseImageButton} onPress={pickImage}>
+          <Text style={styles.chooseImageButtonText}>Escolher Imagem</Text>
+        </TouchableOpacity>
+        {imageUri && (
+          <View style={styles.imagePreviewContainer}>
+            <Image source={{ uri: imageUri }} style={styles.previewImage} />
+            <TouchableOpacity style={styles.removeImageButton} onPress={removeImage}>
+              <MaterialIcons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        )}
+        <TouchableOpacity style={styles.button} onPress={postError} disabled={isUploading}>
+          <Text style={styles.buttonText}>{isUploading ? 'Postando...' : 'Postar Erro'}</Text>
+        </TouchableOpacity>
 
-      <FlatList
-        data={errors}
-        renderItem={renderError}
-        keyExtractor={(item) => item.id}
-        style={styles.errorList}
-      />
+        <FlatList
+          data={errors}
+          renderItem={renderError}
+          keyExtractor={(item) => item.id}
+          style={styles.errorList}
+        />
+      </ScrollView>
 
       {selectedPostImage && (
         <Modal transparent={true} visible={!!selectedPostImage} onRequestClose={() => setSelectedPostImage(null)}>
@@ -199,16 +237,26 @@ const CommunityScreen = ({ navigation }) => {
           </View>
         </Modal>
       )}
-    </ScrollView>
+
+      {/* Botão fixo para navegar para a SearchChatScreen */}
+      <TouchableOpacity 
+        style={styles.chatButton} 
+        onPress={() => navigation.navigate('SearchChatScreen')}
+      >
+        <MaterialIcons name="chat" size={30} color="#fff" />
+      </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   scrollContainer: {
-    flexGrow: 1,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 28,
@@ -241,11 +289,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  imagePreviewContainer: {
+    position: 'relative',
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   previewImage: {
     width: '100%',
     height: 200,
-    marginBottom: 10,
     borderRadius: 10,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 5,
+    right: 5,
+    backgroundColor: '#8a0b07',
+    padding: 4,
+    borderRadius: 50,
   },
   button: {
     backgroundColor: '#8a0b07',
@@ -300,7 +361,7 @@ const styles = StyleSheet.create({
   likeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 15,
+    marginRight: 10,
   },
   likeIcon: {
     marginRight: 5,
@@ -311,10 +372,15 @@ const styles = StyleSheet.create({
   commentSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 10,
   },
   commentCount: {
     color: '#333',
     marginLeft: 5,
+  },
+  timestamp: {
+    fontSize: 12,
+    color: '#666',
   },
   modalContainer: {
     flex: 1,
@@ -345,6 +411,16 @@ const styles = StyleSheet.create({
     color: '#8a0b07',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  chatButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#8a0b07',
+    padding: 12,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

@@ -107,8 +107,8 @@ const EmpresaScreen = ({ navigation }) => {
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
 
-      <Text style={styles.title}>Postagens da Empresa</Text>
-      <Text style={styles.subtitle}>Veja e curta postagens recentes da nossa empresa.</Text>
+      <Text style={styles.title}>Postagens das Empresas</Text>
+      <Text style={styles.subtitle}>Veja e curta postagens recentes das empresa parceiras.</Text>
 
       <FlatList
         data={posts}
