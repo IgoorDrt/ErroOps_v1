@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getFirestore, addDoc, collection } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
@@ -82,7 +82,7 @@ const PostagemScreen = ({ navigation }) => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {/* Modal de Sucesso */}
       <Modal
         transparent={true}
@@ -106,90 +106,112 @@ const PostagemScreen = ({ navigation }) => {
         </View>
       </Modal>
 
-      {/* Seta de navegação */}
+      {/* Cabeçalho com flecha para voltar */}
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-  <Icon name="arrow-back" size={24} color="#fff" />
-</TouchableOpacity>
-
-      <Text style={styles.heading}>Nova Postagem</Text>
-
-      {selectedImage ? (
-        <TouchableOpacity onPress={pickImage}>
-          <Image
-            source={{ uri: selectedImage }}
-            style={styles.selectedImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity onPress={pickImage}>
-          <Text style={styles.imageText}>Toque para selecionar uma imagem</Text>
-        </TouchableOpacity>
-      )}
-
-      <TextInput
-        placeholder="Escreva uma legenda..."
-        value={caption}
-        onChangeText={setCaption}
-        style={styles.captionInput}
-      />
-
-      <TouchableOpacity onPress={handlePost} style={styles.postButton} disabled={isUploading}>
-        <Text style={styles.postButtonText}>{isUploading ? 'Postando...' : 'Postar'}</Text>
+        <Icon name="arrow-back" size={30} color="#fff" />
       </TouchableOpacity>
-    </View>
+
+      <Text style={styles.headerText}>Criar publicação</Text>
+
+      {/* Espaçamento adicional para conteúdo começar mais abaixo */}
+      <View style={styles.contentWrapper}>
+        {/* Input de Texto */}
+        <TextInput
+          placeholder="Escreva algo..."
+          value={caption}
+          onChangeText={setCaption}
+          style={styles.captionInput}
+          multiline
+        />
+
+        {/* Selecione uma imagem */}
+        {selectedImage ? (
+          <TouchableOpacity onPress={pickImage}>
+            <Image
+              source={{ uri: selectedImage }}
+              style={styles.selectedImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity onPress={pickImage} style={styles.imageButton}>
+            <Icon name="image" size={40} color="#8a0b07" />
+            <Text style={styles.imageText}>Toque para adicionar uma imagem</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Botão de Publicar */}
+        <TouchableOpacity onPress={handlePost} style={[styles.postButton, isUploading && styles.disabledButton]} disabled={isUploading}>
+          <Text style={styles.postButtonText}>{isUploading ? 'Postando...' : 'Publicar'}</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
     padding: 20,
-    backgroundColor: '#f5f5f5',
   },
-  heading: {
-    fontSize: 24,
+  headerText: {
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#8a0b07',
-    marginBottom: 20,
-    paddingTop: 60,
     textAlign: 'center',
+    marginBottom: 20,
+  },
+  contentWrapper: {
+    marginTop: 60, // Aumentei o espaçamento para garantir que o conteúdo comece bem abaixo da flecha
+  },
+  captionInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 12,
+    padding: 15,
+    fontSize: 16,
+    marginBottom: 20,
+    textAlignVertical: 'top',
+    minHeight: 120,
+    backgroundColor: '#f9f9f9',
   },
   selectedImage: {
     width: '100%',
-    height: 200,
-    borderRadius: 10,
+    height: 250,
+    borderRadius: 12,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  imageButton: {
+    alignItems: 'center',
+    marginBottom: 20,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#8a0b07',
   },
   imageText: {
     textAlign: 'center',
     color: '#8a0b07',
-    marginBottom: 20,
-  },
-  captionInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
+    fontSize: 18,
+    marginTop: 10,
   },
   postButton: {
     padding: 15,
     backgroundColor: '#8a0b07',
-    borderRadius: 10,
+    borderRadius: 12,
     alignItems: 'center',
+    marginTop: 20,
   },
   postButtonText: {
     color: '#fff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
-    backgroundColor: '#8a0b07',
-    padding: 10,
-    borderRadius: 10,
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
   modalOverlay: {
     flex: 1,
@@ -203,11 +225,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
   },
   successText: {
     fontSize: 18,
@@ -225,6 +242,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    backgroundColor: '#8a0b07',
+    padding: 10,
+    borderRadius: 50,
+    zIndex: 1, // Garante que o botão da flecha fique acima de outros elementos
   },
 });
 

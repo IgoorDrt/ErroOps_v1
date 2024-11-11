@@ -15,6 +15,8 @@ const CommentScreen = ({ route, navigation }) => {
   const [commentText, setCommentText] = useState('');
   const [userEmail, setUserEmail] = useState(null);
   const [userProfileImage, setUserProfileImage] = useState(null);
+  const [likedComments, setLikedComments] = useState({});
+  const [postOwnerEmail, setPostOwnerEmail] = useState(''); // Estado para armazenar o email do autor do post
   const auth = getAuth();
 
   useEffect(() => {
@@ -26,12 +28,25 @@ const CommentScreen = ({ route, navigation }) => {
 
     const unsubscribe = onSnapshot(doc(db, 'posts', postId), (doc) => {
       if (doc.exists()) {
-        setComments(doc.data().comments || []);
+        const fetchedComments = doc.data().comments || [];
+        setComments(fetchedComments);
+
+        // Atualiza likedComments com base no likedBy de cada comentário
+        const newLikedComments = {};
+        fetchedComments.forEach((comment, index) => {
+          const likedBy = comment.likedBy || []; // Garantir que likedBy seja um array vazio se não existir
+          newLikedComments[index] = likedBy.includes(userEmail);
+        });
+        setLikedComments(newLikedComments);
+
+        // Armazena o email do autor do post
+        const postOwner = doc.data().email; // Supondo que o email do autor do post esteja no campo 'email'
+        setPostOwnerEmail(postOwner);
       }
     });
 
     return () => unsubscribe();
-  }, [postId]);
+  }, [postId, userEmail]);
 
   const postComment = async () => {
     if (commentText.trim()) {
@@ -43,6 +58,8 @@ const CommentScreen = ({ route, navigation }) => {
             profileImageUrl: userProfileImage,
             commentText,
             timestamp: new Date().toISOString(), // Salva o timestamp
+            likes: 0, // Inicializa o número de likes como 0
+            likedBy: [] // Inicializa likedBy como um array vazio
           })
         });
         setCommentText('');
@@ -52,14 +69,63 @@ const CommentScreen = ({ route, navigation }) => {
     }
   };
 
-  const renderComment = ({ item }) => (
+  const likeComment = async (commentId) => {
+    const comment = comments[commentId];
+    
+    // Verifica se o campo likedBy existe antes de acessá-lo
+    const likedBy = comment.likedBy || []; // Se 'likedBy' for undefined, inicializa como um array vazio
+
+    // Se o usuário já curtiu, remove o like, caso contrário, adiciona
+    const newLikedBy = likedBy.includes(userEmail)
+      ? likedBy.filter(email => email !== userEmail)  // Remove o like
+      : [...likedBy, userEmail];  // Adiciona o like
+
+    try {
+      const postRef = doc(db, 'posts', postId);
+
+      // Atualiza os campos likes e likedBy diretamente
+      await updateDoc(postRef, {
+        comments: comments.map((c, idx) => {
+          if (idx === commentId) {
+            return {
+              ...c,
+              likes: newLikedBy.length,  // Atualiza a quantidade de likes
+              likedBy: newLikedBy,  // Atualiza a lista de usuários que curtiram
+            };
+          }
+          return c;  // Mantém os outros comentários inalterados
+        }),
+      });
+
+      // Atualiza o estado de likedComments para refletir a mudança visual
+      setLikedComments({
+        ...likedComments,
+        [commentId]: !likedComments[commentId],  // Alterna o estado de "curtido"
+      });
+    } catch (error) {
+      console.error("Erro ao dar like no comentário: ", error);
+    }
+  };
+
+  const renderComment = ({ item, index }) => (
     <View style={styles.commentBox}>
       <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
       <View style={styles.commentContent}>
         <Text style={styles.commentEmail}>{item.email}</Text>
-        {/* Exibe o tempo relativo do comentário */}
         <Text style={styles.commentTime}>{moment(item.timestamp).fromNow()}</Text>
         <Text style={styles.commentText}>{item.commentText}</Text>
+
+        <View style={styles.reactionContainer}>
+          <TouchableOpacity onPress={() => likeComment(index)} style={styles.likeButton}>
+            <Icon 
+              name={likedComments[index] ? 'favorite' : 'favorite-border'} 
+              size={24} 
+              color={likedComments[index] ? '#8a0b07' : '#888'} // Cor do coração
+            />
+            {/* Garantir que item.likes seja sempre um número válido */}
+            <Text style={styles.likeText}>{item.likes || 0}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -69,7 +135,11 @@ const CommentScreen = ({ route, navigation }) => {
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
         <Icon name="arrow-back" size={24} color="#8a0b07" />
       </TouchableOpacity>
-      <Text style={styles.title}>Comentários</Text>
+      <View style={styles.titleContainer}>
+        <Text style={styles.title}>Comentários</Text>
+        {/* Exibe o email do autor do post */}
+        <Text style={styles.postOwnerEmail}>{postOwnerEmail}</Text>
+      </View>
 
       <FlatList
         data={comments}
@@ -103,11 +173,20 @@ const styles = StyleSheet.create({
   backButton: {
     marginBottom: 10,
   },
+  titleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#8a0b07',
-    marginBottom: 10,
+  },
+  postOwnerEmail: {
+    fontSize: 14,
+    color: '#8a0b07',
   },
   commentList: {
     flex: 1,
@@ -142,6 +221,20 @@ const styles = StyleSheet.create({
   commentText: {
     color: '#333',
     marginTop: 5,
+  },
+  reactionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  likeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  likeText: {
+    marginLeft: 5,
+    fontSize: 14,
+    color: '#888',
   },
   inputContainer: {
     flexDirection: 'row',

@@ -12,7 +12,7 @@ const firebaseConfig = {
   projectId: "erroops-93c8a",
   storageBucket: "erroops-93c8a.appspot.com",
   messagingSenderId: "694707365976",
-  appId: "1:694707365976:web:440ace5273d2c0aa4c022d"
+  appId: "1:694707365976:web:440ace5273d2c0aa4c022d",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -66,30 +66,6 @@ const EmpresaScreen = ({ navigation }) => {
     }
   };
 
-  const formatTimeSince = (timestamp) => {
-    if (!timestamp) {
-      return 'Data desconhecida';
-    }
-
-    const now = new Date();
-    const postDate = timestamp.toDate();
-    const diffInMs = now - postDate;
-    const diffInSeconds = Math.floor(diffInMs / 1000);
-    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
-
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds} s atrás`;
-    } else if (diffInMinutes < 60) {
-      return `${diffInMinutes} min atrás`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours} h atrás`;
-    } else {
-      return `${diffInDays} d atrás`;
-    }
-  };
-
   const renderPost = ({ item }) => {
     const userLiked = item.likes?.includes(userEmail);
 
@@ -97,14 +73,12 @@ const EmpresaScreen = ({ navigation }) => {
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
           <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
-          <Text style={styles.username}>
-            {item.email || 'Usuário desconhecido'} - {formatTimeSince(item.timestamp)}
-          </Text>
+          <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
         </View>
 
         {item.imageUrl && (
           <TouchableOpacity onPress={() => setSelectedImage(item.imageUrl)}>
-            <Image source={{ uri: item.imageUrl }} style={styles.postImage} resizeMode="cover" />
+            <Image source={{ uri: item.imageUrl }} style={styles.postImage} />
           </TouchableOpacity>
         )}
         <Text style={styles.postText}>{item.caption || 'Sem legenda'}</Text>
@@ -130,12 +104,12 @@ const EmpresaScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <StatusBar backgroundColor="#fff" barStyle="dark-content" />
 
-      <View style={styles.container}>
-        <Text style={styles.title}>Postagens da Empresa</Text>
-        <Text style={styles.subtitle}>Veja e curta postagens recentes da nossa empresa.</Text>
+        <Text style={styles.title}>Postagens das Empresas</Text>
+        <Text style={styles.subtitle}>Veja e curta postagens recentes das empresa parceiras.</Text>
 
         <FlatList
           data={posts}
@@ -156,20 +130,29 @@ const EmpresaScreen = ({ navigation }) => {
             </View>
           </Modal>
         )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+
+      {userAuth === 2 && (
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('PostagemScreen')}
+        >
+          <MaterialIcons name="business" size={40} color="#fff" />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    paddingVertical: 10,
-  },
   container: {
     flex: 1,
-    padding: 10,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,
@@ -223,7 +206,6 @@ const styles = StyleSheet.create({
   likeSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 10,
   },
   likeIcon: {
     marginRight: 5,
@@ -234,10 +216,10 @@ const styles = StyleSheet.create({
   commentSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 15,
   },
   commentCount: {
     color: '#333',
-    marginLeft: 5,
   },
   modalContainer: {
     flex: 1,
@@ -268,6 +250,16 @@ const styles = StyleSheet.create({
     color: '#8a0b07',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  addButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#8a0b07',
+    padding: 15,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
