@@ -129,11 +129,38 @@ const ProfileMenu = () => {
 const Stack = createNativeStackNavigator();
 const Tab = createMaterialBottomTabNavigator();
 
+const SideMenu = ({ menuVisible, toggleMenu, slideAnim }) => {
+  const navigation = useNavigation(); // Usa o hook aqui, pois SideMenu está dentro do NavigationContainer
+
+  return (
+    
+    <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
+      <View style={styles.overlay}>
+        <TouchableWithoutFeedback onPress={toggleMenu}>
+          <View style={styles.overlayBackground} />
+        </TouchableWithoutFeedback>
+        <Animated.View style={[styles.menuContainer2, { transform: [{ translateX: slideAnim }] }]}>
+          <ScrollView contentContainerStyle={styles.menuContent}>
+            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("MyPosts"); }}>
+              <Text style={styles.menuText2}>Meus Posts e Comentários</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Politica"); }}>
+              <Text style={styles.menuText2}>Política de Privacidade</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Termos"); }}>
+              <Text style={styles.menuText2}>Termos de Uso</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
 
 export default function AppNavigator() {
   const [menuVisible, setMenuVisible] = useState(false);
   const slideAnim = useRef(new Animated.Value(-Dimensions.get("window").width * 0.5)).current; // Começa fora da tela
-
+  
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
     Animated.timing(slideAnim, {
@@ -145,7 +172,6 @@ export default function AppNavigator() {
 
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Splash">
         <Stack.Screen
@@ -262,29 +288,9 @@ export default function AppNavigator() {
           })}
         />
       </Stack.Navigator>
-     {/* Modal com Animação de Slide */}
-     <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
-          <View style={styles.overlay}>
-            <TouchableWithoutFeedback onPress={toggleMenu}>
-              <View style={styles.overlayBackground} />
-            </TouchableWithoutFeedback>
-            <Animated.View style={[styles.menuContainer2, { transform: [{ translateX: slideAnim }] }]}>
-              <ScrollView contentContainerStyle={styles.menuContent}>
-                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Meus posts e comentários")}>
-                  <Text style={styles.menuText2}>Meus Posts e Comentários</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Política de Privacidade")}>
-                  <Text style={styles.menuText2}>Política de Privacidade</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.menuItem2} onPress={() => console.log("Termos de Uso")}>
-                  <Text style={styles.menuText2}>Termos de Uso</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </Animated.View>
-          </View>
-        </Modal>
+      <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim} />
     </NavigationContainer>
-    </GestureHandlerRootView>
+   
   );
 }
 
