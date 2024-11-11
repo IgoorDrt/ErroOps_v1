@@ -53,6 +53,7 @@ const MyPostsScreen = ({ navigation }) => {
   };
 
   const renderPost = ({ item }) => {
+    const likeCount = item.likes ? item.likes.length : 0; // Verifica a quantidade de likes no array `likes`
     return (
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
@@ -65,14 +66,14 @@ const MyPostsScreen = ({ navigation }) => {
         <Text style={styles.postText}>{item.text || 'Post sem descrição'}</Text>
 
         <View style={styles.actionRow}>
-          <TouchableOpacity onPress={() => openLikesModal(item.likedBy)} style={styles.likeButton}>
+          <TouchableOpacity onPress={() => openLikesModal(item.likes)} style={styles.likeButton}>
             <FontAwesome name="heart" size={20} color="#8a0b07" />
-            <Text style={styles.likeCount}>{item.likes || 0}</Text>
+            <Text style={styles.likeCount}>{likeCount}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('CommunityCommentScreen', { errorId: item.id })} style={styles.commentButton}>
             <MaterialIcons name="comment" size={20} color="#8a0b07" />
-            <Text style={styles.commentCount}>{item.comments.length || 0}</Text>
+            <Text style={styles.commentCount}>{item.comments ? item.comments.length : 0}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => openDeleteModal(item.id)} style={styles.deleteButton}>
@@ -134,9 +135,13 @@ const MyPostsScreen = ({ navigation }) => {
             </TouchableOpacity>
             <Text style={styles.modalTitle}>Curtidas</Text>
             <ScrollView style={styles.likesList}>
-              {likedBy.map((user, index) => (
-                <Text key={index} style={styles.likeUser}>{user}</Text>
-              ))}
+              {likedBy.length > 0 ? (
+                likedBy.map((user, index) => (
+                  <Text key={index} style={styles.likeUser}>{user}</Text>
+                ))
+              ) : (
+                <Text style={styles.likeUser}>Ninguém curtiu ainda</Text>
+              )}
             </ScrollView>
           </View>
         </View>
