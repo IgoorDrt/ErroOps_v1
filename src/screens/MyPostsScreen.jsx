@@ -1,33 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, ScrollView } from 'react-native';
-import { getFirestore, collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
 const db = getFirestore();
 const auth = getAuth();
+const storage = getStorage();
 
 const MyPostsScreen = ({ navigation }) => {
   const [myPosts, setMyPosts] = useState([]);
   const [userEmail, setUserEmail] = useState(null);
+  const [userProfileImageUrl, setUserProfileImageUrl] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [likesModalVisible, setLikesModalVisible] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [likedBy, setLikedBy] = useState([]);
+  const [isDataEmpty, setIsDataEmpty] = useState(false);
 
   useEffect(() => {
     const user = auth.currentUser;
     if (user) {
       setUserEmail(user.email);
-      
-      const unsubscribe = onSnapshot(collection(db, 'errors'), (snapshot) => {
-        const posts = snapshot.docs
-          .map((doc) => ({ id: doc.id, ...doc.data() }))
-          .filter((post) => post.email === user.email);
-        setMyPosts(posts);
+
+      // Obter a imagem de perfil do usuário logado
+      const userDocRef = doc(db, 'usuarios', user.uid);
+      getDoc(userDocRef).then((doc) => {
+        if (doc.exists()) {
+          const profileImagePath = doc.data().profileImageUrl;
+          if (profileImagePath.startsWith('https://')) {
+            setUserProfileImageUrl(profileImagePath); // URL externa
+          } else {
+            getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)) // URL interna
+              .then((url) => setUserProfileImageUrl(url))
+              .catch((error) => console.error("Erro ao obter URL da imagem de perfil: ", error));
+          }
+        }
       });
-      
-      return () => unsubscribe();
+
+      // Obter posts do usuário logado nas coleções `errors` e `posts`
+      const errorsQuery = query(collection(db, 'errors'), where("email", "==", user.email));
+      const postsQuery = query(collection(db, 'posts'), where("email", "==", user.email));
+
+      const unsubscribeErrors = onSnapshot(errorsQuery, (snapshot) => {
+        const errorsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const allData = [...errorsData];
+
+        onSnapshot(postsQuery, (postSnapshot) => {
+          const postsData = postSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          allData.push(...postsData);
+
+          setMyPosts(allData);
+          setIsDataEmpty(allData.length === 0);
+        });
+      });
+
+      return () => unsubscribeErrors();
     }
   }, []);
 
@@ -40,6 +69,7 @@ const MyPostsScreen = ({ navigation }) => {
     if (selectedPostId) {
       try {
         await deleteDoc(doc(db, 'errors', selectedPostId));
+        await deleteDoc(doc(db, 'posts', selectedPostId));
         setDeleteModalVisible(false);
       } catch (error) {
         console.error("Erro ao excluir o post: ", error);
@@ -47,16 +77,41 @@ const MyPostsScreen = ({ navigation }) => {
     }
   };
 
-  const openLikesModal = (likes) => {
-    setLikedBy(likes || []); // Define um array vazio se `likes` for `undefined`
+  const openLikesModal = async (likes) => {
+    const likedByWithProfile = await Promise.all(
+      (likes || []).map(async (email) => {
+        let profileImageUrl = null;
+        const userQuery = query(collection(db, 'usuarios'), where('email', '==', email));
+        const querySnapshot = await onSnapshot(userQuery, async (snapshot) => {
+          const userDoc = snapshot.docs[0];
+          if (userDoc) {
+            const profileImagePath = userDoc.data().profileImageUrl;
+            if (profileImagePath.startsWith('https://')) {
+              profileImageUrl = profileImagePath; // URL externa
+            } else {
+              profileImageUrl = await getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)); // URL interna
+            }
+          }
+        });
+
+        return { email, profileImageUrl };
+      })
+    );
+
+    setLikedBy(likedByWithProfile);
     setLikesModalVisible(true);
   };
 
   const renderPost = ({ item }) => {
-    const likeCount = item.likes ? item.likes.length : 0; // Verifica a quantidade de likes no array `likes`
+    const likeCount = item.likes ? item.likes.length : 0;
     return (
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
+          {userProfileImageUrl ? (
+            <Image source={{ uri: userProfileImageUrl }} style={styles.profileImage} />
+          ) : (
+            <Ionicons name="person-circle-outline" size={40} color="#8a0b07" />
+          )}
           <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
         </View>
 
@@ -92,12 +147,16 @@ const MyPostsScreen = ({ navigation }) => {
       <Text style={styles.title}>Meus Posts</Text>
       <Text style={styles.description}>Aqui são seus posts. Você pode vê-los e excluí-los.</Text>
 
-      <FlatList
-        data={myPosts}
-        renderItem={renderPost}
-        keyExtractor={(item) => item.id}
-        style={styles.postList}
-      />
+      {isDataEmpty ? (
+        <Text style={styles.noPostsText}>Você não possui publicações</Text>
+      ) : (
+        <FlatList
+          data={myPosts}
+          renderItem={renderPost}
+          keyExtractor={(item) => item.id}
+          style={styles.postList}
+        />
+      )}
 
       {/* Modal para confirmação de exclusão */}
       <Modal
@@ -137,7 +196,14 @@ const MyPostsScreen = ({ navigation }) => {
             <ScrollView style={styles.likesList}>
               {likedBy.length > 0 ? (
                 likedBy.map((user, index) => (
-                  <Text key={index} style={styles.likeUser}>{user}</Text>
+                  <View key={index} style={styles.userItem}>
+                    {user.profileImageUrl ? (
+                      <Image source={{ uri: user.profileImageUrl }} style={styles.profileImage} />
+                    ) : (
+                      <Ionicons name="person-circle-outline" size={40} color="#8a0b07" />
+                    )}
+                    <Text style={styles.likeUser}>{user.email}</Text>
+                  </View>
                 ))
               ) : (
                 <Text style={styles.likeUser}>Ninguém curtiu ainda</Text>
@@ -175,6 +241,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginVertical: 10,
   },
+  noPostsText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#8a0b07',
+    marginTop: 50,
+  },
   postList: {
     marginTop: 20,
   },
@@ -190,6 +262,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  profileImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
   },
   username: {
     fontWeight: 'bold',
@@ -296,9 +374,12 @@ const styles = StyleSheet.create({
   likesList: {
     width: '100%',
   },
-  likeUser: {
+  userItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 5,
-    textAlign: 'center',
+  },
+  likeUser: {
     color: '#333',
   },
 });
