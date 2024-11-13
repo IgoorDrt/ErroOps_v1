@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '../config/firebase';
-import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, getDoc} from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
@@ -15,17 +15,16 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+    const unsubscribe = onSnapshot(doc(db, 'usuarios', user.uid), (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const userData = docSnapshot.data();
         setDisplayName(userData.nome || '');
         setEmail(userData.email || '');
         setPhotoURL(userData.profileImageUrl || '');
       }
-    };
+    });
 
-    fetchUserData();
+    return unsubscribe; // Unsubscribe para limpar o listener ao sair da tela
   }, []);
 
   const updateProfile = async () => {

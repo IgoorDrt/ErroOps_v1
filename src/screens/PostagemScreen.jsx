@@ -6,6 +6,7 @@ import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp } from 'firebase/app';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { doc, getDoc } from 'firebase/firestore';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -55,8 +56,20 @@ const PostagemScreen = ({ navigation }) => {
     try {
       setIsUploading(true);
       const user = auth.currentUser;
+  
+      // Obtém a imagem de perfil do usuário logado da coleção 'usuarios'
+      const userDocRef = doc(db, 'usuarios', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const profileImageUrl = userDoc.exists() ? userDoc.data().profileImageUrl : null;
+  
+      if (!profileImageUrl) {
+        alert('Imagem de perfil não encontrada.');
+        setIsUploading(false);
+        return;
+      }
+  
       let imageUrl = null;
-
+  
       if (selectedImage) {
         const response = await fetch(selectedImage);
         const blob = await response.blob();
@@ -64,15 +77,17 @@ const PostagemScreen = ({ navigation }) => {
         await uploadBytes(imageRef, blob);
         imageUrl = await getDownloadURL(imageRef);
       }
-
+  
+      // Adiciona o documento à coleção 'posts' com a URL da imagem de perfil do usuário
       await addDoc(collection(db, 'posts'), {
         caption: caption,
         imageUrl: imageUrl,
         email: user.email,
         likes: [],
         comments: [],
+        profileImageUrl: profileImageUrl, // Adiciona a URL da imagem de perfil do usuário
       });
-
+  
       setIsUploading(false);
       setShowSuccessModal(true); // Mostra o modal de sucesso
     } catch (error) {

@@ -6,7 +6,7 @@ import { createMaterialBottomTabNavigator } from "@react-navigation/material-bot
 import { MaterialCommunityIcons } from "react-native-vector-icons";
 import { Image } from "expo-image"; // Importa expo-image
 import { getAuth, signOut } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { getFirestore, doc, getDoc, onSnapshot} from "firebase/firestore";
 import { initializeApp } from "firebase/app";
 import { useTheme } from "react-native-paper";
 import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
@@ -31,6 +31,8 @@ import ControleComuScreen from "../screens/ControleComuScreen";
 import PostagemScreen from "../screens/PostagemScreen";
 import CommunityCommentScreen from "../screens/CommunityCommentScreen";
 import MyPostsScreen from "../screens/MyPostsScreen";
+import TermsScreen from "../screens/TermosScreen";
+import PrivacyScreen from "../screens/PrivacidadeScreen";
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -55,22 +57,15 @@ const ProfileMenu = () => {
   const toggleModal = () => setModalVisible(!modalVisible);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const docRef = doc(db, "usuarios", user.uid);
-          const docSnap = await getDoc(docRef);
-          if (docSnap.exists()) {
-            setUserPhoto(docSnap.data().profileImageUrl || null); // Define a foto do usuário
-          }
-        } catch (error) {
-          console.error("Erro ao buscar dados do usuário:", error);
+    const user = auth.currentUser;
+    if (user) {
+      const unsubscribe = onSnapshot(doc(db, "usuarios", user.uid), (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          setUserPhoto(docSnapshot.data().profileImageUrl || null); // Define a foto do usuário em tempo real
         }
-      }
-    };
-
-    fetchUserProfile();
+      });
+      return unsubscribe; // Limpa o listener quando o componente desmonta
+    }
   }, []);
 
   const handleLogout = async () => {
@@ -232,6 +227,18 @@ export default function AppNavigator() {
         <Stack.Screen
           name="SearchChatScreen"
           component={SearchChatScreen}
+          options={{ headerShown: false }}
+        />
+         
+         <Stack.Screen
+          name="Politica"
+          component={PrivacyScreen}
+          options={{ headerShown: false }}
+        />
+
+         <Stack.Screen
+          name="Termos"
+          component={TermsScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen
