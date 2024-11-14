@@ -33,6 +33,7 @@ import MyPostsScreen from "../screens/MyPostsScreen";
 import TermsScreen from "../screens/TermosScreen";
 import PrivacyScreen from "../screens/PrivacidadeScreen";
 import { useTheme } from "react-native-paper";
+
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -169,133 +170,129 @@ export default function AppNavigator() {
   return (
     <NavigationContainer>
       <View style={{ flex: 1, backgroundColor: theme === 'light' ? '#f5f5f5' : '#222' }}>
-      <Stack.Navigator initialRouteName="Splash">
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PostagemScreen"
-          component={PostagemScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PainelAdm"
-          component={AdminMenuScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="UserAdminScreen"
-          component={UserAdminScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ControleErroScreen"
-          component={ControleErroScreen}
-          options={{ headerShown: false }}
-        />
-         <Stack.Screen
-          name="CommunityCommentScreen"
-          component={CommunityCommentScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ControleComuScreen"
-          component={ControleComuScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Welcome"
-          component={WelcomeScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Register"
-          component={RegisterScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="Login"
-          component={LoginScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ChatScreen"
-          component={ChatScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SearchChatScreen"
-          component={SearchChatScreen}
-          options={{ headerShown: false }}
-        />
-         
-         <Stack.Screen
-          name="Politica"
-          component={PrivacyScreen}
-          options={{ headerShown: false }}
-        />
- 
-         <Stack.Screen
-          name="Termos"
-          component={TermsScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="SearchScreen"
-          component={SearchScreen}
-          options={{ headerShown: false }}
-        />
-       
-        <Stack.Screen
-          name="ResetPassword"
-          component={ResetPassword}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="CommentScreen"
-          component={CommentScreen}
-          options={{ headerShown: false }}
-        />
-         <Stack.Screen
-          name="MyPosts"
-          component={MyPostsScreen}
-          options={{ headerShown: false }}
-        />
-         <Stack.Screen
-          name="Main"
-          component={TabNavigator}
-          options={{
-            headerRight: () => <ProfileMenu />,
-            headerStyle: { backgroundColor: "#8a0b07" },
-            headerTintColor: "#fff",
-            headerTitleAlign: "center",
-            title: "",
-            headerLeft: () => (
-              <TouchableOpacity onPress={toggleMenu} style={{ paddingLeft: 20 }}>
-                <MaterialCommunityIcons name="menu" size={24} color="#fff" />
-              </TouchableOpacity>
-            ),
-          }}
-        />
- 
-        <Stack.Screen
-          name="Profile"
-          component={ProfileScreen}
-          options={({ navigation }) => ({
-            title: "", // Remove o título
-            headerStyle: { backgroundColor: "#8a0b07" },
-            headerTintColor: "#fff",
-            headerLeft: () => (
-              <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 20 }}>
-                <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
-              </TouchableOpacity>
-            ),
-            headerBackTitleVisible: false, // Remove o título do botão de voltar
-          })}
-        />
-      </Stack.Navigator>
+        <Stack.Navigator initialRouteName="Splash">
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PostagemScreen"
+            component={PostagemScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PainelAdm"
+            component={AdminMenuScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="UserAdminScreen"
+            component={UserAdminScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ControleErroScreen"
+            component={ControleErroScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CommunityCommentScreen"
+            component={CommunityCommentScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ControleComuScreen"
+            component={ControleComuScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Welcome"
+            component={WelcomeScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Register"
+            component={RegisterScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Login"
+            component={LoginScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ChatScreen"
+            component={ChatScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SearchChatScreen"
+            component={SearchChatScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Politica"
+            component={PrivacyScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Termos"
+            component={TermsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SearchScreen"
+            component={SearchScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ResetPassword"
+            component={ResetPassword}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="CommentScreen"
+            component={CommentScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="MyPosts"
+            component={MyPostsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Main"
+            component={TabNavigator}
+            options={{
+              headerRight: () => <ProfileMenu />,
+              headerStyle: { backgroundColor: "#8a0b07" },
+              headerTintColor: "#fff",
+              headerTitleAlign: "center",
+              title: "",
+              headerLeft: () => (
+                <TouchableOpacity onPress={toggleMenu} style={{ paddingLeft: 20 }}>
+                  <MaterialCommunityIcons name="menu" size={24} color="#fff" />
+                </TouchableOpacity>
+              ),
+            }}
+          />
+          <Stack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={({ navigation }) => ({
+              title: "", // Remove o título
+              headerStyle: { backgroundColor: "#8a0b07" },
+              headerTintColor: "#fff",
+              headerLeft: () => (
+                <TouchableOpacity onPress={() => navigation.goBack()} style={{ paddingLeft: 20 }}>
+                  <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
+                </TouchableOpacity>
+              ),
+              headerBackTitleVisible: false, // Remove o título do botão de voltar
+            })}
+          />
+        </Stack.Navigator>
         <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim} toggleTheme={toggleTheme} theme={theme} />
       </View>
     </NavigationContainer>
@@ -417,4 +414,4 @@ const styles = StyleSheet.create({
   menuText2: {
     fontSize: 16,
   },
-});
+}); 

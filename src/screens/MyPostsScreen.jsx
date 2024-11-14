@@ -30,17 +30,19 @@ const MyPostsScreen = ({ navigation }) => {
         if (doc.exists()) {
           let profileImagePath = doc.data().profileImageUrl;
 
-          // Verificar se a URL não está no formato base64
-          if (!profileImagePath.startsWith('data:image')) {
-            if (profileImagePath.startsWith('https://')) {
-              setUserProfileImageUrl(profileImagePath); // URL externa
-            } else {
-              getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)) // URL interna
-                .then((url) => setUserProfileImageUrl(url))
-                .catch((error) => console.error("Erro ao obter URL da imagem de perfil: ", error));
-            }
+          // Remover qualquer prefixo base64, se presente
+          if (profileImagePath.startsWith('data:image')) {
+            profileImagePath = profileImagePath.split(',')[1];
+          }
+
+          if (profileImagePath.startsWith('https://')) {
+            // URL externa, pode ser usada diretamente
+            setUserProfileImageUrl(profileImagePath);
           } else {
-            console.warn("Formato de imagem inválido no campo profileImageUrl.");
+            // URL interna no Firebase Storage, buscar com getDownloadURL
+            getDownloadURL(ref(storage, `profileImages/${profileImagePath}`))
+              .then((url) => setUserProfileImageUrl(url))
+              .catch((error) => console.error("Erro ao obter URL da imagem de perfil: ", error));
           }
         }
       });
@@ -88,27 +90,24 @@ const MyPostsScreen = ({ navigation }) => {
       (likes || []).map(async (email) => {
         let profileImageUrl = null;
 
-        // Verificar nas coleções 'errors' e 'posts' o campo profileImageUrl
         try {
-          const errorsQuery = query(collection(db, 'errors'), where('email', '==', email));
-          const postsQuery = query(collection(db, 'posts'), where('email', '==', email));
+          const userQuery = query(collection(db, 'usuarios'), where('email', '==', email));
+          const querySnapshot = await getDocs(userQuery);
 
-          const errorsSnapshot = await getDocs(errorsQuery);
-          const postsSnapshot = await getDocs(postsQuery);
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            let profileImagePath = userDoc.data().profileImageUrl;
 
-          if (!errorsSnapshot.empty) {
-            // Encontrado em 'errors'
-            const errorDoc = errorsSnapshot.docs[0];
-            profileImageUrl = errorDoc.data().profileImageUrl;
-          } else if (!postsSnapshot.empty) {
-            // Encontrado em 'posts'
-            const postDoc = postsSnapshot.docs[0];
-            profileImageUrl = postDoc.data().profileImageUrl;
-          }
+            // Remover qualquer prefixo base64, se presente
+            if (profileImagePath.startsWith('data:image')) {
+              profileImagePath = profileImagePath.split(',')[1];
+            }
 
-          // Verificar se a URL é interna ou externa e buscar se for interna
-          if (profileImageUrl && !profileImageUrl.startsWith('https://')) {
-            profileImageUrl = await getDownloadURL(ref(storage, `profileImages/${profileImageUrl}`));
+            if (profileImagePath.startsWith('https://')) {
+              profileImageUrl = profileImagePath; // URL externa
+            } else {
+              profileImageUrl = await getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)); // URL interna
+            }
           }
         } catch (error) {
           console.error("Erro ao buscar a imagem de perfil: ", error);
