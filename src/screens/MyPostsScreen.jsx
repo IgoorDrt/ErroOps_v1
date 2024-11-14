@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, ScrollView } from 'react-native';
-import { getFirestore, collection, onSnapshot, doc, getDoc, deleteDoc, query, where } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot, doc, getDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
@@ -28,13 +28,19 @@ const MyPostsScreen = ({ navigation }) => {
       const userDocRef = doc(db, 'usuarios', user.uid);
       getDoc(userDocRef).then((doc) => {
         if (doc.exists()) {
-          const profileImagePath = doc.data().profileImageUrl;
-          if (profileImagePath.startsWith('https://')) {
-            setUserProfileImageUrl(profileImagePath); // URL externa
+          let profileImagePath = doc.data().profileImageUrl;
+
+          // Verificar se a URL não está no formato base64
+          if (!profileImagePath.startsWith('data:image')) {
+            if (profileImagePath.startsWith('https://')) {
+              setUserProfileImageUrl(profileImagePath); // URL externa
+            } else {
+              getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)) // URL interna
+                .then((url) => setUserProfileImageUrl(url))
+                .catch((error) => console.error("Erro ao obter URL da imagem de perfil: ", error));
+            }
           } else {
-            getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)) // URL interna
-              .then((url) => setUserProfileImageUrl(url))
-              .catch((error) => console.error("Erro ao obter URL da imagem de perfil: ", error));
+            console.warn("Formato de imagem inválido no campo profileImageUrl.");
           }
         }
       });
@@ -81,18 +87,32 @@ const MyPostsScreen = ({ navigation }) => {
     const likedByWithProfile = await Promise.all(
       (likes || []).map(async (email) => {
         let profileImageUrl = null;
-        const userQuery = query(collection(db, 'usuarios'), where('email', '==', email));
-        const querySnapshot = await onSnapshot(userQuery, async (snapshot) => {
-          const userDoc = snapshot.docs[0];
-          if (userDoc) {
-            const profileImagePath = userDoc.data().profileImageUrl;
-            if (profileImagePath.startsWith('https://')) {
-              profileImageUrl = profileImagePath; // URL externa
-            } else {
-              profileImageUrl = await getDownloadURL(ref(storage, `profileImages/${profileImagePath}`)); // URL interna
-            }
+
+        // Verificar nas coleções 'errors' e 'posts' o campo profileImageUrl
+        try {
+          const errorsQuery = query(collection(db, 'errors'), where('email', '==', email));
+          const postsQuery = query(collection(db, 'posts'), where('email', '==', email));
+
+          const errorsSnapshot = await getDocs(errorsQuery);
+          const postsSnapshot = await getDocs(postsQuery);
+
+          if (!errorsSnapshot.empty) {
+            // Encontrado em 'errors'
+            const errorDoc = errorsSnapshot.docs[0];
+            profileImageUrl = errorDoc.data().profileImageUrl;
+          } else if (!postsSnapshot.empty) {
+            // Encontrado em 'posts'
+            const postDoc = postsSnapshot.docs[0];
+            profileImageUrl = postDoc.data().profileImageUrl;
           }
-        });
+
+          // Verificar se a URL é interna ou externa e buscar se for interna
+          if (profileImageUrl && !profileImageUrl.startsWith('https://')) {
+            profileImageUrl = await getDownloadURL(ref(storage, `profileImages/${profileImageUrl}`));
+          }
+        } catch (error) {
+          console.error("Erro ao buscar a imagem de perfil: ", error);
+        }
 
         return { email, profileImageUrl };
       })
@@ -104,6 +124,7 @@ const MyPostsScreen = ({ navigation }) => {
 
   const renderPost = ({ item }) => {
     const likeCount = item.likes ? item.likes.length : 0;
+
     return (
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
@@ -112,7 +133,7 @@ const MyPostsScreen = ({ navigation }) => {
           ) : (
             <Ionicons name="person-circle-outline" size={40} color="#8a0b07" />
           )}
-          <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
+          <Text style={styles.username}>{userEmail || 'Usuário desconhecido'}</Text>
         </View>
 
         {item.imageUrl && (

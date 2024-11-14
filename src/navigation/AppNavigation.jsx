@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useRef} from "react"; 
+import React, { useState, useEffect, useRef } from "react";
 import { View, TouchableOpacity, StyleSheet, Modal, Text, Animated, Dimensions, TouchableWithoutFeedback } from "react-native";
 import { NavigationContainer, useNavigation } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createMaterialBottomTabNavigator } from "@react-navigation/material-bottom-tabs";
 import { MaterialCommunityIcons } from "react-native-vector-icons";
-import { Image } from "expo-image"; // Importa expo-image
+import { Image } from "expo-image";
 import { getAuth, signOut } from "firebase/auth";
-import { getFirestore, doc, getDoc, onSnapshot} from "firebase/firestore";
+import { getFirestore, doc, onSnapshot } from "firebase/firestore";
 import { initializeApp } from "firebase/app";
-import { useTheme } from "react-native-paper";
 import { GestureHandlerRootView, ScrollView } from "react-native-gesture-handler";
-// Importando suas telas
+
 import SplashScreen from "../screens/SplashScreen";
 import WelcomeScreen from "../screens/WelcomeScreen";
 import RegisterScreen from "../screens/RegisterScreen";
@@ -33,6 +32,7 @@ import CommunityCommentScreen from "../screens/CommunityCommentScreen";
 import MyPostsScreen from "../screens/MyPostsScreen";
 import TermsScreen from "../screens/TermosScreen";
 import PrivacyScreen from "../screens/PrivacidadeScreen";
+import { useTheme } from "react-native-paper";
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
@@ -43,12 +43,10 @@ const firebaseConfig = {
   appId: "1:694707365976:web:440ace5273d2c0aa4c022d",
 };
 
-// Inicializa Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Componente de Menu do Perfil
 const ProfileMenu = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [userPhoto, setUserPhoto] = useState(null);
@@ -61,17 +59,17 @@ const ProfileMenu = () => {
     if (user) {
       const unsubscribe = onSnapshot(doc(db, "usuarios", user.uid), (docSnapshot) => {
         if (docSnapshot.exists()) {
-          setUserPhoto(docSnapshot.data().profileImageUrl || null); // Define a foto do usuário em tempo real
+          setUserPhoto(docSnapshot.data().profileImageUrl || null);
         }
       });
-      return unsubscribe; // Limpa o listener quando o componente desmonta
+      return unsubscribe;
     }
   }, []);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      navigation.navigate("Login"); // Navega para a tela de login após logout
+      navigation.navigate("Login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
     }
@@ -79,7 +77,7 @@ const ProfileMenu = () => {
 
   const handleProfileEdit = () => {
     navigation.navigate("Profile");
-    toggleModal(); // Fecha o modal
+    toggleModal();
   };
 
   return (
@@ -92,7 +90,6 @@ const ProfileMenu = () => {
         )}
       </TouchableOpacity>
 
-      {/* Modal para o menu */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -118,32 +115,31 @@ const ProfileMenu = () => {
   );
 };
 
-
-
-// Setup de Navegação
 const Stack = createNativeStackNavigator();
 const Tab = createMaterialBottomTabNavigator();
 
-const SideMenu = ({ menuVisible, toggleMenu, slideAnim }) => {
-  const navigation = useNavigation(); // Usa o hook aqui, pois SideMenu está dentro do NavigationContainer
+const SideMenu = ({ menuVisible, toggleMenu, slideAnim, toggleTheme, theme }) => {
+  const navigation = useNavigation();
 
   return (
-    
     <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={toggleMenu}>
           <View style={styles.overlayBackground} />
         </TouchableWithoutFeedback>
-        <Animated.View style={[styles.menuContainer2, { transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View style={[styles.menuContainer2, { backgroundColor: theme === 'light' ? '#fff' : '#333', transform: [{ translateX: slideAnim }] }]}>
           <ScrollView contentContainerStyle={styles.menuContent}>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("MyPosts"); }}>
-              <Text style={styles.menuText2}>Meus Posts e Comentários</Text>
+              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Meus Posts e Comentários</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Politica"); }}>
-              <Text style={styles.menuText2}>Política de Privacidade</Text>
+              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Política de Privacidade</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Termos"); }}>
-              <Text style={styles.menuText2}>Termos de Uso</Text>
+              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Termos de Uso</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); toggleTheme(); }}>
+              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Mudar Tema</Text>
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
@@ -154,8 +150,13 @@ const SideMenu = ({ menuVisible, toggleMenu, slideAnim }) => {
 
 export default function AppNavigator() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const slideAnim = useRef(new Animated.Value(-Dimensions.get("window").width * 0.5)).current; // Começa fora da tela
-  
+  const [theme, setTheme] = useState('light');
+  const slideAnim = useRef(new Animated.Value(-Dimensions.get("window").width * 0.5)).current;
+
+  const toggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
     Animated.timing(slideAnim, {
@@ -165,9 +166,9 @@ export default function AppNavigator() {
     }).start();
   };
 
-
   return (
     <NavigationContainer>
+      <View style={{ flex: 1, backgroundColor: theme === 'light' ? '#f5f5f5' : '#222' }}>
       <Stack.Navigator initialRouteName="Splash">
         <Stack.Screen
           name="Splash"
@@ -235,7 +236,7 @@ export default function AppNavigator() {
           component={PrivacyScreen}
           options={{ headerShown: false }}
         />
-
+ 
          <Stack.Screen
           name="Termos"
           component={TermsScreen}
@@ -246,7 +247,7 @@ export default function AppNavigator() {
           component={SearchScreen}
           options={{ headerShown: false }}
         />
-        
+       
         <Stack.Screen
           name="ResetPassword"
           component={ResetPassword}
@@ -278,7 +279,7 @@ export default function AppNavigator() {
             ),
           }}
         />
-
+ 
         <Stack.Screen
           name="Profile"
           component={ProfileScreen}
@@ -295,24 +296,17 @@ export default function AppNavigator() {
           })}
         />
       </Stack.Navigator>
-      <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim} />
+        <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim} toggleTheme={toggleTheme} theme={theme} />
+      </View>
     </NavigationContainer>
-   
   );
 }
 
-
-// Tab Navigation
 function TabNavigator() {
-  const theme = useTheme();
+  const theme = useTheme(); 
   theme.colors.secondaryContainer = "transparent";
-
   return (
-    <Tab.Navigator
-      barStyle={{ backgroundColor: "#8a0b07" }}
-      activeColor="black"
-      inactiveColor="#ffffff"
-    >
+    <Tab.Navigator barStyle={{ backgroundColor: "#8a0b07" }} activeColor="black" inactiveColor="#ffffff">
       <Tab.Screen
         name="Home"
         component={HomeScreen}
@@ -357,7 +351,6 @@ function TabNavigator() {
   );
 }
 
-// Estilos da Navbar e ProfileMenu
 const styles = StyleSheet.create({
   menuContainer: {
     flexDirection: "row",
@@ -400,14 +393,12 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "flex-start",
   },
   overlayBackground: {
     flex: 1,
   },
   menuContainer2: {
-    backgroundColor: "white",
-    width: "50%", // Largura do menu lateral
+    width: "50%",
     height: "100%",
     position: "absolute",
     left: 0,

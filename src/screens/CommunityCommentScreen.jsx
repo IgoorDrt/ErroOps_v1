@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { db } from '../config/firebase'; // Ajuste o caminho se necessário
+import { db } from '../config/firebase';
 import moment from 'moment';
-import 'moment/locale/pt-br'; // Para exibir o tempo em português
+import 'moment/locale/pt-br';
 
 moment.locale('pt-br');
 
 const CommunityCommentScreen = ({ route, navigation }) => {
-  const { errorId } = route.params; // Recebe o ID do erro da comunidade
+  const { errorId } = route.params;
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [userEmail, setUserEmail] = useState(null);
@@ -19,10 +19,17 @@ const CommunityCommentScreen = ({ route, navigation }) => {
   const auth = getAuth();
 
   useEffect(() => {
+    const fetchUserProfileImage = async (userId) => {
+      const userDoc = await getDoc(doc(db, 'usuarios', userId));
+      if (userDoc.exists()) {
+        setUserProfileImage(userDoc.data().profileImageUrl);
+      }
+    };
+
     const user = auth.currentUser;
     if (user) {
       setUserEmail(user.email);
-      setUserProfileImage(user.photoURL);
+      fetchUserProfileImage(user.uid);
     }
 
     const unsubscribe = onSnapshot(doc(db, 'errors', errorId), (doc) => {
@@ -40,14 +47,14 @@ const CommunityCommentScreen = ({ route, navigation }) => {
         const errorRef = doc(db, 'errors', errorId);
         await updateDoc(errorRef, {
           comments: [
-            ...comments, 
+            ...comments,
             {
               email: userEmail,
               profileImageUrl: userProfileImage,
               commentText,
               timestamp: new Date().toISOString(),
-              likes: 0,  // Inicializa o número de likes como 0
-              likedBy: []  // Inicializa likedBy como um array vazio
+              likes: 0,
+              likedBy: []
             }
           ],
         });
@@ -60,36 +67,30 @@ const CommunityCommentScreen = ({ route, navigation }) => {
 
   const likeComment = async (commentId) => {
     const comment = comments[commentId];
-    
-    // Verifica se o campo likedBy existe antes de acessá-lo
-    const likedBy = comment.likedBy || []; // Se 'likedBy' for undefined, inicializa como um array vazio
+    const likedBy = comment.likedBy || [];
 
-    // Se o usuário já curtiu, remove o like, caso contrário, adiciona
-    const newLikedBy = likedBy.includes(userEmail)
-      ? likedBy.filter(email => email !== userEmail)  // Remove o like
-      : [...likedBy, userEmail];  // Adiciona o like
+    // Adiciona ou remove o usuário do array de likes
+    const newLikedBy = likedBy.some(item => item.email === userEmail)
+      ? likedBy.filter(item => item.email !== userEmail) // Remove o like
+      : [...likedBy, { email: userEmail, profileImageUrl: userProfileImage }]; // Adiciona o like com foto
 
     try {
       const errorRef = doc(db, 'errors', errorId);
-
-      // Atualiza os campos likes e likedBy diretamente
       await updateDoc(errorRef, {
         comments: comments.map((c, idx) => {
           if (idx === commentId) {
             return {
               ...c,
-              likes: newLikedBy.length,  // Atualiza a quantidade de likes
-              likedBy: newLikedBy,  // Atualiza a lista de usuários que curtiram
+              likes: newLikedBy.length,
+              likedBy: newLikedBy,
             };
           }
-          return c;  // Mantém os outros comentários inalterados
+          return c;
         }),
       });
-
-      // Atualiza o estado de likedComments para refletir a mudança visual
       setLikedComments({
         ...likedComments,
-        [commentId]: !likedComments[commentId],  // Alterna o estado de "curtido"
+        [commentId]: !likedComments[commentId],
       });
     } catch (error) {
       console.error("Erro ao dar like no comentário: ", error);
@@ -103,13 +104,12 @@ const CommunityCommentScreen = ({ route, navigation }) => {
         <Text style={styles.commentEmail}>{item.email}</Text>
         <Text style={styles.commentTime}>{moment(item.timestamp).fromNow()}</Text>
         <Text style={styles.commentText}>{item.commentText}</Text>
-
         <View style={styles.reactionContainer}>
           <TouchableOpacity onPress={() => likeComment(index)} style={styles.likeButton}>
-            <Icon 
-              name={likedComments[index] ? 'favorite' : 'favorite-border'} 
-              size={24} 
-              color={likedComments[index] ? '#8a0b07' : '#888'} // Cor do coração
+            <Icon
+              name={likedComments[index] ? 'favorite' : 'favorite-border'}
+              size={24}
+              color={likedComments[index] ? '#8a0b07' : '#888'}
             />
             <Text style={styles.likeText}>{item.likes}</Text>
           </TouchableOpacity>
@@ -124,14 +124,12 @@ const CommunityCommentScreen = ({ route, navigation }) => {
         <Icon name="arrow-back" size={24} color="#8a0b07" />
       </TouchableOpacity>
       <Text style={styles.title}>Comentários da Comunidade</Text>
-
       <FlatList
         data={comments}
         renderItem={renderComment}
         keyExtractor={(item, index) => index.toString()}
         style={styles.commentList}
       />
-
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -147,7 +145,6 @@ const CommunityCommentScreen = ({ route, navigation }) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

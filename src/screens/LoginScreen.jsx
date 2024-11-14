@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Modal, Platform } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -17,8 +17,8 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [noAccountModalVisible, setNoAccountModalVisible] = useState(false);
 
-  // Configurando a autenticação do Google
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: Platform.select({
       android: '694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com',
@@ -61,6 +61,7 @@ export default function LoginScreen({ navigation }) {
         setError('Senha incorreta. Tente novamente.');
       } else if (errorCode === 'auth/user-not-found') {
         setError('Usuário não encontrado.');
+        setNoAccountModalVisible(true); // Exibe o modal caso o usuário não seja encontrado
       } else {
         setError('Erro desconhecido.');
       }
@@ -85,7 +86,7 @@ export default function LoginScreen({ navigation }) {
         }
       } else {
         setError('Dados do usuário não encontrados.');
-        navigation.navigate('Main'); // Redireciona para a página principal caso o documento não seja encontrado.
+        setNoAccountModalVisible(true); // Exibe o modal caso o usuário Google não seja encontrado
       }
     } catch (error) {
       setError(error.message);
@@ -130,6 +131,36 @@ export default function LoginScreen({ navigation }) {
       <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()}>
         <FontAwesome name="google" size={24} color="#8a0b07" />
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.noAccountButton} onPress={() => setNoAccountModalVisible(true)}>
+        <Text style={styles.noAccountText}>Não tem uma conta? Clique aqui</Text>
+      </TouchableOpacity>
+
+      <Modal
+        visible={noAccountModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setNoAccountModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalText}>Ainda não tem uma conta?</Text>
+            <Text style={styles.modalText}>Registre-se agora para acessar o aplicativo!</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setNoAccountModalVisible(false);
+                navigation.navigate('Register');
+              }}
+            >
+              <Text style={styles.modalButtonText}>Ir para Registro</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setNoAccountModalVisible(false)}>
+              <Text style={styles.modalCloseButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -153,7 +184,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
-    borderWidth: 0,
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -161,14 +191,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f1f1',
     borderRadius: 10,
     paddingHorizontal: 10,
-    borderWidth: 0,
     marginBottom: 15,
   },
   passwordInput: {
     flex: 1,
     paddingVertical: 10,
     paddingRight: 50,
-    borderWidth: 0,
   },
   eyeIcon: {
     position: 'absolute',
@@ -214,5 +242,51 @@ const styles = StyleSheet.create({
     backgroundColor: '#8a0b07',
     padding: 10,
     borderRadius: 10,
+  },
+  noAccountButton: {
+    marginTop: 20,
+    alignSelf: 'center',
+  },
+  noAccountText: {
+    color: '#8a0b07',
+    textDecorationLine: 'underline',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  modalButton: {
+    backgroundColor: '#8a0b07',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginBottom: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  modalCloseButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  modalCloseButtonText: {
+    color: '#8a0b07',
+    fontSize: 16,
   },
 });
