@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView, Clipboard } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -155,6 +155,7 @@ const SearchScreen = () => {
         renderItem={renderResult}
         keyExtractor={(item) => item.id}
         style={styles.resultList}
+        scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
       />
     </ScrollView>
   );

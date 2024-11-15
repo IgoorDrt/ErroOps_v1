@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, TouchableOpacity, FlatList, Text, Image, StyleSheet, Modal, Pressable, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: "AIzaSyDcQU6h9Hdl_iABchuS3OvK-xKB44Gt43Y",
+  apiKey: "API_KEY",
   authDomain: "erroops-93c8a.firebaseapp.com",
   projectId: "erroops-93c8a",
   storageBucket: "erroops-93c8a.appspot.com",
   messagingSenderId: "694707365976",
-  appId: "1:694707365976:web:440ace5273d2c0aa4c022d"
+  appId: "APP_ID"
 };
 
-// Inicializa o Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializa o Firebase apenas se ele ainda não foi inicializado
+let app;
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0]; // Usa o aplicativo já inicializado
+}
+
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 const ChatScreen = ({ route, navigation }) => {
   const { userId, otherUserId } = route.params;
@@ -44,7 +52,16 @@ const ChatScreen = ({ route, navigation }) => {
   useEffect(() => {
     const updateStatus = async (status) => {
       const userDocRef = doc(db, 'onlineStatus', userId);
-      await updateDoc(userDocRef, { status, lastSeen: serverTimestamp() });
+      
+      try {
+        await updateDoc(userDocRef, { status, lastSeen: serverTimestamp() });
+      } catch (error) {
+        if (error.code === 'not-found') {
+          await setDoc(userDocRef, { status, lastSeen: serverTimestamp() });
+        } else {
+          console.error("Erro ao atualizar o status:", error);
+        }
+      }
     };
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -138,7 +155,8 @@ const ChatScreen = ({ route, navigation }) => {
       });
 
       if (!result.canceled) {
-        await sendMessage(result.assets[0].uri, 'image');
+        const imageUrl = await uploadImageToFirebase(result.assets[0].uri);
+        await sendMessage(imageUrl, 'image');
       }
     } catch (error) {
       console.error("Erro ao selecionar imagem:", error);
@@ -154,11 +172,25 @@ const ChatScreen = ({ route, navigation }) => {
       });
 
       if (!result.canceled) {
-        await sendMessage(result.assets[0].uri, 'image');
+        const imageUrl = await uploadImageToFirebase(result.assets[0].uri);
+        await sendMessage(imageUrl, 'image');
       }
     } catch (error) {
       console.error("Erro ao tirar foto:", error);
     }
+  };
+
+  const uploadImageToFirebase = async (uri) => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const filename = uri.substring(uri.lastIndexOf('/') + 1);
+    const storageRef = ref(storage, `images/${filename}`);
+
+    await uploadBytes(storageRef, blob);
+    const downloadURL = await getDownloadURL(storageRef);
+    
+    return downloadURL; // Retorna a URL pública da imagem
   };
 
   const sendMessage = async (content, type = 'text') => {

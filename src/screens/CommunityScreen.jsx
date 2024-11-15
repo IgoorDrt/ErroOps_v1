@@ -57,7 +57,7 @@ const CommunityScreen = ({ navigation }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaType.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -221,7 +221,8 @@ const CommunityScreen = ({ navigation }) => {
           data={errors}
           renderItem={renderError}
           keyExtractor={(item) => item.id}
-          style={styles.errorList}
+          contentContainerStyle={styles.errorList}
+          scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
         />
       </ScrollView>
 
@@ -238,7 +239,6 @@ const CommunityScreen = ({ navigation }) => {
         </Modal>
       )}
 
-      {/* Botão fixo para navegar para a SearchChatScreen */}
       <TouchableOpacity 
         style={styles.chatButton} 
         onPress={() => navigation.navigate('SearchChatScreen')}
@@ -297,9 +297,9 @@ const styles = StyleSheet.create({
   },
   previewImage: {
     width: '100%',
-    height: 250, // Ajuste a altura para dar mais espaço à imagem
+    height: 250,
     borderRadius: 10,
-    resizeMode: 'contain', // Exibir a imagem inteira
+    resizeMode: 'contain',
   },
   removeImageButton: {
     position: 'absolute',
@@ -350,10 +350,10 @@ const styles = StyleSheet.create({
   },
   errorImage: {
     width: '100%',
-    height: 250, // Aumentar a altura para exibir a imagem completa
+    height: 250,
     marginBottom: 10,
     borderRadius: 10,
-    resizeMode: 'contain', // Garante que a imagem seja exibida inteira
+    resizeMode: 'contain',
   },
   actionRow: {
     flexDirection: 'row',
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     width: '90%',
     height: '70%',
     borderRadius: 10,
-    resizeMode: 'contain', // Exibe a imagem inteira em modal também
+    resizeMode: 'contain',
   },
   closeButton: {
     position: 'absolute',
@@ -422,6 +422,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
-
 
 export default CommunityScreen;

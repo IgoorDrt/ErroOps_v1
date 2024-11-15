@@ -105,17 +105,17 @@ const EmpresaScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <StatusBar backgroundColor="#fff" barStyle="dark-content" />
-
         <Text style={styles.title}>Postagens das Empresas</Text>
-        <Text style={styles.subtitle}>Veja e curta postagens recentes das empresa parceiras.</Text>
+        <Text style={styles.subtitle}>Veja e curta postagens recentes das empresas parceiras.</Text>
 
         <FlatList
           data={posts}
           renderItem={renderPost}
           keyExtractor={(item) => item.id}
-          style={styles.postList}
+          contentContainerStyle={styles.postList}
+          scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
         />
 
         {selectedImage && (
@@ -130,16 +130,16 @@ const EmpresaScreen = ({ navigation }) => {
             </View>
           </Modal>
         )}
-      </ScrollView>
 
-      {userAuth === 2 && (
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('PostagemScreen')}
-        >
-          <MaterialIcons name="business" size={40} color="#fff" />
-        </TouchableOpacity>
-      )}
+        {userAuth === 2 && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('PostagemScreen')}
+          >
+            <MaterialIcons name="business" size={40} color="#fff" />
+          </TouchableOpacity>
+        )}
+      </ScrollView>
     </View>
   );
 };

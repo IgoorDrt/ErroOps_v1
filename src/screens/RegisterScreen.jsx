@@ -8,6 +8,8 @@ import {
   Modal,
   Image,
   Platform,
+  Dimensions,
+  ScrollView,
 } from "react-native";
 import {
   createUserWithEmailAndPassword,
@@ -32,6 +34,7 @@ import * as WebBrowser from "expo-web-browser";
 
 WebBrowser.maybeCompleteAuthSession();
 
+const { width, height } = Dimensions.get("window");
 const storage = getStorage();
 
 export default function RegisterScreen({ navigation }) {
@@ -40,8 +43,7 @@ export default function RegisterScreen({ navigation }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
-    useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const [error, setError] = useState("");
   const [profileImage, setProfileImage] = useState(null);
   const [imageUri, setImageUri] = useState("");
@@ -50,12 +52,12 @@ export default function RegisterScreen({ navigation }) {
 
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: Platform.select({
-      android:
-        "694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com",
+      android: "694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com",
       ios: "694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com",
       web: "694707365976-r15gj03skca9f8sfe9snbafdk7s47jkd.apps.googleusercontent.com",
     }),
   });
+
   useEffect(() => {
     if (response?.type === "success") {
       const { id_token } = response.params;
@@ -79,7 +81,6 @@ export default function RegisterScreen({ navigation }) {
       const usersRef = collection(db, "usuarios");
       const q = query(usersRef, where("email", "==", email));
       const querySnapshot = await getDocs(q);
-
       return !querySnapshot.empty;
     } catch (error) {
       console.error("Erro ao verificar e-mail:", error);
@@ -89,9 +90,7 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!agreedToTerms) {
-      setError(
-        "Você deve concordar com os Termos de Uso e a Política de Privacidade."
-      );
+      setError("Você deve concordar com os Termos de Uso e a Política de Privacidade.");
       return;
     }
 
@@ -101,22 +100,16 @@ export default function RegisterScreen({ navigation }) {
     }
 
     const emailExists = await checkEmailExists(email);
-
     if (emailExists) {
       setAccountExistsModal(true);
       return;
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
       let profileImageUrl = null;
-
       if (profileImage) {
         const imageRef = ref(storage, `profileImages/${user.uid}`);
         const img = await fetch(profileImage.uri);
@@ -145,7 +138,6 @@ export default function RegisterScreen({ navigation }) {
       const user = userCredential.user;
 
       const emailExists = await checkEmailExists(user.email);
-
       if (emailExists) {
         setAccountExistsModal(true);
         return;
@@ -166,170 +158,148 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.navigate("Welcome")}
-      >
-        <Icon name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
-      <Text style={styles.title}>Registrar-se</Text>
-
-      {imageUri ? (
-        <Image source={{ uri: imageUri }} style={styles.profileImage} />
-      ) : null}
-
-      <TouchableOpacity style={styles.button} onPress={selectProfileImage}>
-        <Text style={styles.buttonText}>Escolher Foto</Text>
-      </TouchableOpacity>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nome"
-        value={name}
-        onChangeText={setName}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-      />
-
-      <View style={styles.passwordContainer}>
-        <TextInput
-          style={styles.passwordInput}
-          placeholder="Senha"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!isPasswordVisible}
-        />
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
         <TouchableOpacity
-          onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+          style={styles.backButton}
+          onPress={() => navigation.navigate("Welcome")}
         >
-          <Icon
-            name={isPasswordVisible ? "eye-off" : "eye"}
-            size={24}
-            color="#8a0b07"
-          />
+          <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-      </View>
+        <Text style={styles.title}>Registrar-se</Text>
 
-      <View style={styles.passwordContainer}>
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.profileImage} />
+        ) : null}
+
+        <TouchableOpacity style={styles.button} onPress={selectProfileImage}>
+          <Text style={styles.buttonText}>Escolher Foto</Text>
+        </TouchableOpacity>
+
         <TextInput
-          style={styles.passwordInput}
-          placeholder="Confirmar Senha"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry={!isConfirmPasswordVisible}
+          style={styles.input}
+          placeholder="Nome"
+          value={name}
+          onChangeText={setName}
         />
-        <TouchableOpacity
-          onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
-        >
-          <Icon
-            name={isConfirmPasswordVisible ? "eye-off" : "eye"}
-            size={24}
-            color="#8a0b07"
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+        />
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Senha"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!isPasswordVisible}
           />
-        </TouchableOpacity>
-      </View>
-
-      {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-      <View style={styles.termsContainer}>
-        <TouchableOpacity onPress={() => setAgreedToTerms(!agreedToTerms)}>
-          <Icon
-            name={agreedToTerms ? "checkbox" : "square-outline"}
-            size={24}
-            color="#8a0b07"
-          />
-        </TouchableOpacity>
-        <Text style={styles.termsText}>
-          Eu concordo com os
-          <Text
-            style={styles.link}
-            onPress={() => navigation.navigate("Termos")}
+          <TouchableOpacity
+            onPress={() => setIsPasswordVisible(!isPasswordVisible)}
           >
-            {" "}
-            Termos de Uso{" "}
-          </Text>
-          e a
-          <Text
-            style={styles.link}
-            onPress={() => navigation.navigate("Politica")}
-          >
-            {" "}
-            Política de Privacidade
-          </Text>
-        </Text>
-      </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Registrar</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={styles.googleButton}
-        onPress={() => promptAsync()}
-      >
-        <FontAwesome name="google" size={24} color="#8a0b07" />
-      </TouchableOpacity>
-
-      <Modal
-        visible={accountExistsModal}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setAccountExistsModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>
-              Este e-mail já está cadastrado.
-            </Text>
-            <Text style={styles.modalText}>
-              Por favor, faça login ou use outro e-mail.
-            </Text>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setAccountExistsModal(false)}
-            >
-              <Text style={styles.modalButtonText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
+            <Icon name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </View>
+
+        <View style={styles.passwordContainer}>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder="Confirmar Senha"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            secureTextEntry={!isConfirmPasswordVisible}
+          />
+          <TouchableOpacity
+            onPress={() => setIsConfirmPasswordVisible(!isConfirmPasswordVisible)}
+          >
+            <Icon name={isConfirmPasswordVisible ? "eye-off" : "eye"} size={24} color="#8a0b07" />
+          </TouchableOpacity>
+        </View>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <View style={styles.termsContainer}>
+          <TouchableOpacity onPress={() => setAgreedToTerms(!agreedToTerms)}>
+            <Icon name={agreedToTerms ? "checkbox" : "square-outline"} size={24} color="#8a0b07" />
+          </TouchableOpacity>
+          <Text style={styles.termsText}>
+            Eu concordo com os
+            <Text style={styles.link} onPress={() => navigation.navigate("Termos")}>
+              {" "}Termos de Uso{" "}
+            </Text>
+            e a
+            <Text style={styles.link} onPress={() => navigation.navigate("Politica")}>
+              {" "}Política de Privacidade
+            </Text>
+          </Text>
+        </View>
+
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Registrar</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.googleButton} onPress={() => promptAsync()}>
+          <FontAwesome name="google" size={24} color="#8a0b07" />
+        </TouchableOpacity>
+
+        <Modal
+          visible={accountExistsModal}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setAccountExistsModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalText}>Este e-mail já está cadastrado.</Text>
+              <Text style={styles.modalText}>Por favor, faça login ou use outro e-mail.</Text>
+              <TouchableOpacity style={styles.modalButton} onPress={() => setAccountExistsModal(false)}>
+                <Text style={styles.modalButtonText}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: "center",
     justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#ffffff",
+    paddingVertical: 20,
+  },
+  container: {
+    width: "90%",
+    alignItems: "center",
+    paddingTop: 20,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
+    marginBottom: 15,
     color: "#8a0b07",
     textAlign: "center",
   },
   input: {
+    width: "100%",
     backgroundColor: "#f1f1f1",
     borderRadius: 10,
-    padding: 15,
+    padding: 14,
     marginBottom: 15,
   },
   passwordContainer: {
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f1f1f1",
     borderRadius: 10,
     paddingHorizontal: 10,
-    borderWidth: 0,
     marginBottom: 15,
   },
   passwordInput: {
@@ -338,10 +308,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#8a0b07",
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderRadius: 10,
     alignItems: "center",
     marginBottom: 20,
+    width: "100%",
   },
   buttonText: {
     color: "#fff",
@@ -349,7 +320,7 @@ const styles = StyleSheet.create({
   },
   googleButton: {
     backgroundColor: "#fff",
-    padding: 15,
+    padding: 12,
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -367,29 +338,31 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: "absolute",
-    top: 40,
-    left: 20,
+    top: 10,
+    left: 10,
     backgroundColor: "#8a0b07",
-    padding: 10,
-    borderRadius: 10,
+    padding: 8,
+    borderRadius: 20,
   },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: 15,
   },
   termsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: 10,
     justifyContent: "center",
   },
   termsText: {
     fontSize: 14,
     color: "#8a0b07",
     marginLeft: 10,
+    flexWrap: "wrap",
+    textAlign: "center",
   },
   link: {
     textDecorationLine: "underline",
@@ -401,17 +374,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   modalContainer: {
-    width: "80%",
+    width: "85%",
     padding: 20,
     backgroundColor: "#fff",
     borderRadius: 10,
     alignItems: "center",
   },
   modalText: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#333",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 10,
   },
   modalButton: {
     backgroundColor: "#8a0b07",
