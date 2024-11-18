@@ -2,39 +2,56 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 
 export default function SplashScreen({ navigation }) {
-  const logoScale = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.8)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Animação de entrada
     Animated.parallel([
       Animated.timing(logoScale, {
         toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoOpacity, {
-        toValue: 1,
-        duration: 1000,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.timing(textOpacity, {
         toValue: 1,
-        duration: 1500,
+        duration: 800,
         useNativeDriver: true,
       }),
-    ]).start();
-
-    const timer = setTimeout(() => {
-      navigation.navigate('Welcome');
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [logoScale, logoOpacity, textOpacity]);
+    ]).start(() => {
+      // Pausa antes da animação de saída
+      setTimeout(() => {
+        // Animação de saída
+        Animated.parallel([
+          Animated.timing(logoScale, {
+            toValue: 0.8,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(textOpacity, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // Navegação para a próxima tela
+          navigation.navigate('Welcome');
+        });
+      }, 1000); // Tempo de exibição da splash screen
+    });
+  }, [logoScale, textOpacity]);
 
   return (
     <View style={styles.container}>
-      <Animated.Text style={[styles.appName, { opacity: textOpacity }]}>
+      <Animated.Text
+        style={[
+          styles.appName,
+          {
+            transform: [{ scale: logoScale }],
+            opacity: textOpacity,
+          },
+        ]}
+      >
         ErrOops
       </Animated.Text>
     </View>
