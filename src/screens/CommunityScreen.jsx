@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, Modal, Pressable, StatusBar, TextInput, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Modal,
+  Pressable,
+  StatusBar,
+  TextInput,
+  ScrollView,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getFirestore, collection, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, Timestamp, query, orderBy } from 'firebase/firestore';
+import {
+  getFirestore,
+  collection,
+  onSnapshot,
+  doc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  addDoc,
+  Timestamp,
+  query,
+  orderBy,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -41,7 +65,7 @@ const CommunityScreen = ({ navigation }) => {
         }));
         setErrors(errorsData);
       });
-      
+
       return () => {
         unsubscribe();
         unsubscribeErrors();
@@ -57,7 +81,7 @@ const CommunityScreen = ({ navigation }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Correção aplicada aqui
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -101,12 +125,12 @@ const CommunityScreen = ({ navigation }) => {
           setImageUri(null);
           setShowSuccessModal(true);
         } catch (error) {
-          console.error("Erro ao postar: ", error);
+          console.error('Erro ao postar: ', error);
         } finally {
           setIsUploading(false);
         }
       } else {
-        console.error("Usuário não está logado.");
+        console.error('Usuário não está logado.');
       }
     }
   };
@@ -123,7 +147,7 @@ const CommunityScreen = ({ navigation }) => {
           likes: userLiked ? arrayRemove(user.email) : arrayUnion(user.email),
         });
       } catch (error) {
-        console.error("Erro ao curtir o erro: ", error);
+        console.error('Erro ao curtir o erro: ', error);
       }
     }
   };
@@ -179,7 +203,12 @@ const CommunityScreen = ({ navigation }) => {
             <Text style={styles.likeCount}>{item.likes?.length || 0}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('CommunityCommentScreen', { errorId: item.id })} style={styles.commentSection}>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('CommunityCommentScreen', { errorId: item.id })
+            }
+            style={styles.commentSection}
+          >
             <MaterialIcons name="comment" size={24} color="#8a0b07" />
             <Text style={styles.commentCount}>{commentCount}</Text>
           </TouchableOpacity>
@@ -191,7 +220,7 @@ const CommunityScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar backgroundColor="#fff" barStyle="dark-content" />
-      
+
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Comunidade ErrOops</Text>
         <Text style={styles.subtitle}>Compartilhe e resolva erros com outros usuários.</Text>
@@ -222,12 +251,16 @@ const CommunityScreen = ({ navigation }) => {
           renderItem={renderError}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.errorList}
-          scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
+          scrollEnabled={false}
         />
       </ScrollView>
 
       {selectedPostImage && (
-        <Modal transparent={true} visible={!!selectedPostImage} onRequestClose={() => setSelectedPostImage(null)}>
+        <Modal
+          transparent={true}
+          visible={!!selectedPostImage}
+          onRequestClose={() => setSelectedPostImage(null)}
+        >
           <View style={styles.modalContainer}>
             <BlurView intensity={100} style={styles.blurBackground}>
               <Pressable onPress={() => setSelectedPostImage(null)} style={styles.closeButton}>
@@ -239,8 +272,8 @@ const CommunityScreen = ({ navigation }) => {
         </Modal>
       )}
 
-      <TouchableOpacity 
-        style={styles.chatButton} 
+      <TouchableOpacity
+        style={styles.chatButton}
         onPress={() => navigation.navigate('SearchChatScreen')}
       >
         <MaterialIcons name="chat" size={30} color="#fff" />

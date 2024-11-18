@@ -41,6 +41,7 @@ import CommunityCommentScreen from "../screens/CommunityCommentScreen";
 import MyPostsScreen from "../screens/MyPostsScreen";
 import TermsScreen from "../screens/TermosScreen";
 import PrivacyScreen from "../screens/PrivacidadeScreen";
+import ContatoScreen from "../screens/Contato";
 import { useTheme } from "react-native-paper";
 
 // Firebase Config
@@ -128,28 +129,28 @@ const ProfileMenu = () => {
 const Stack = createNativeStackNavigator();
 const Tab = createMaterialBottomTabNavigator();
 
-const SideMenu = ({ menuVisible, toggleMenu, slideAnim, toggleTheme, theme }) => {
+const SideMenu = ({ menuVisible, toggleMenu, slideAnim, theme }) => {
   const navigation = useNavigation();
 
   return (
-    <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
+     <Modal transparent={true} visible={menuVisible} onRequestClose={toggleMenu}>
       <View style={styles.overlay}>
         <TouchableWithoutFeedback onPress={toggleMenu}>
           <View style={styles.overlayBackground} />
         </TouchableWithoutFeedback>
-        <Animated.View style={[styles.menuContainer2, { backgroundColor: theme === 'light' ? '#fff' : '#333', transform: [{ translateX: slideAnim }] }]}>
+        <Animated.View style={[styles.menuContainer2, { transform: [{ translateX: slideAnim }] }]}>
           <ScrollView contentContainerStyle={styles.menuContent}>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("MyPosts"); }}>
-              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Meus Posts e Comentários</Text>
+              <Text style={styles.menuText2}>Meus Posts e Comentários</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Politica"); }}>
-              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Política de Privacidade</Text>
+              <Text style={styles.menuText2}>Política de Privacidade</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Termos"); }}>
-              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Termos de Uso</Text>
+              <Text style={styles.menuText2}>Termos de Uso</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); toggleTheme(); }}>
-              <Text style={[styles.menuText2, { color: theme === 'light' ? '#000' : '#fff' }]}>Mudar Tema</Text>
+            <TouchableOpacity style={styles.menuItem2} onPress={() => { toggleMenu(); navigation.navigate("Contato"); }}>
+              <Text style={styles.menuText2}>Contate-nos</Text>
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
@@ -160,12 +161,10 @@ const SideMenu = ({ menuVisible, toggleMenu, slideAnim, toggleTheme, theme }) =>
 
 export default function AppNavigator() {
   const [menuVisible, setMenuVisible] = useState(false);
-  const [theme, setTheme] = useState('light');
+  
   const slideAnim = useRef(new Animated.Value(-Dimensions.get("window").width * 0.5)).current;
 
-  const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
-  };
+ 
 
   const toggleMenu = () => {
     setMenuVisible(!menuVisible);
@@ -179,7 +178,7 @@ export default function AppNavigator() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <NavigationContainer>
-        <View style={{ flex: 1, backgroundColor: theme === 'light' ? '#f5f5f5' : '#222' }}>
+        <View style={{ flex: 1}}>
           <Stack.Navigator initialRouteName="Splash">
             <Stack.Screen
               name="Splash"
@@ -272,6 +271,11 @@ export default function AppNavigator() {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="Contato"
+              component={ContatoScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="Main"
               component={TabNavigator}
               options={{
@@ -303,7 +307,7 @@ export default function AppNavigator() {
               })}
             />
           </Stack.Navigator>
-          <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim} toggleTheme={toggleTheme} theme={theme} />
+          <SideMenu menuVisible={menuVisible} toggleMenu={toggleMenu} slideAnim={slideAnim}/>
         </View>
       </NavigationContainer>
     </GestureHandlerRootView>
@@ -311,8 +315,8 @@ export default function AppNavigator() {
 }
 
 function TabNavigator() {
-  const theme = useTheme(); 
-  theme.colors.secondaryContainer = "transparent";
+  const theme = useTheme(); //não mudar
+  theme.colors.secondaryContainer = "transparent"; //não mudar
   return (
     <Tab.Navigator barStyle={{ backgroundColor: "#8a0b07" }} activeColor="black" inactiveColor="#ffffff">
       <Tab.Screen
@@ -401,12 +405,14 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-start",
   },
   overlayBackground: {
     flex: 1,
   },
   menuContainer2: {
-    width: "50%",
+    backgroundColor: "white",
+    width: "50%", // Largura do menu lateral
     height: "100%",
     position: "absolute",
     left: 0,

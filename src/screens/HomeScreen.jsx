@@ -1,30 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, ScrollView } from 'react-native';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 
 const HomeScreen = () => {
   const [userName, setUserName] = useState('');
 
-  // Obtém o nome do usuário logado
+  // Obtém o nome do usuário logado em tempo real
   useEffect(() => {
-    const fetchUserName = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         if (user.displayName) {
           setUserName(user.displayName);
         } else {
-          // Busca o nome no Firestore caso o displayName não esteja disponível
-          const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-          if (userDoc.exists()) {
-            setUserName(userDoc.data().nome || 'Usuário');
-          } else {
-            setUserName('Usuário');
-          }
+          const userDocRef = doc(db, 'usuarios', user.uid);
+          const unsubscribeSnapshot = onSnapshot(userDocRef, (docSnapshot) => {
+            if (docSnapshot.exists()) {
+              setUserName(docSnapshot.data().nome || 'Usuário');
+            } else {
+              setUserName('Usuário');
+            }
+          });
+          return () => unsubscribeSnapshot();
         }
       }
-    };
-    fetchUserName();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -50,6 +52,17 @@ const HomeScreen = () => {
             <Text style={styles.cardTitle}>Nossa Equipe</Text>
             <Text style={styles.companyText}>
               Na ErrOops, trabalhamos juntos para oferecer o melhor suporte e compartilhar conhecimentos que facilitam a resolução de erros de programação. Conte conosco para evoluir em sua jornada!
+            </Text>
+          </View>
+        </View>
+
+        {/* Card sobre a comunidade */}
+        <View style={styles.infoCard}>
+          <Image source={require('../../assets/img33.png')} style={styles.companyImage} />
+          <View style={styles.companyInfo}>
+            <Text style={styles.cardTitle}>Comunidade ErrOops</Text>
+            <Text style={styles.companyText}>
+              Descubra a Comunidade da ErrOops, onde você pode compartilhar seus erros e obter ajuda de outros programadores. Colabore, aprenda e ajude a resolver problemas juntos!
             </Text>
           </View>
         </View>

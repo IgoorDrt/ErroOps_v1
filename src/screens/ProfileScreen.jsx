@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
+import { View, Text, TextInput, Image, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { auth, db } from '../config/firebase';
-import { doc, setDoc, deleteDoc, onSnapshot, getDoc} from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, getDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
@@ -14,6 +15,7 @@ const ProfileScreen = () => {
   const user = auth.currentUser;
   const navigation = useNavigation();
 
+  // Carregar dados do Firestore ao montar o componente
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'usuarios', user.uid), (docSnapshot) => {
       if (docSnapshot.exists()) {
@@ -24,32 +26,51 @@ const ProfileScreen = () => {
       }
     });
 
-    return unsubscribe; // Unsubscribe para limpar o listener ao sair da tela
+    return unsubscribe; // Limpa o listener ao sair da tela
   }, []);
 
+  // Atualizar perfil no Firestore
   const updateProfile = async () => {
     try {
-      const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+      const userDocRef = doc(db, 'usuarios', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
 
-        await setDoc(doc(db, 'usuarios', user.uid), {
-          nome: displayName,
-          email,
-          profileImageUrl: photoURL,
-          autenticacao: userData.autenticacao,
-        });
+        await setDoc(
+          userDocRef,
+          {
+            nome: displayName || userData.nome, // Atualizar nome ou manter existente
+            email: user.email, // Garantir que o e-mail do Firebase seja usado
+            profileImageUrl: photoURL || userData.profileImageUrl, // Atualizar foto ou manter existente
+            autenticacao: userData.autenticacao, // Preservar campo autenticacao
+          },
+          { merge: true }
+        );
 
         setShowSuccessModal(true); // Exibe o modal de sucesso
+      } else {
+        // Caso o documento ainda não exista, cria um novo
+        await setDoc(userDocRef, {
+          nome: displayName || user.displayName || 'Usuário',
+          email: user.email,
+          profileImageUrl: photoURL || user.photoURL || 'https://placekitten.com/200/200',
+          autenticacao: user.providerData[0]?.providerId === 'password' ? 1 : 2, // Diferenciar provedores
+        });
+
+        setShowSuccessModal(true);
       }
     } catch (error) {
-      console.error('Erro ao atualizar perfil: ', error);
+      console.error('Erro ao atualizar perfil:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar o perfil.');
     }
   };
 
+  // Selecionar e fazer upload de imagem para Firebase Storage
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
+    if (!permissionResult.granted) {
       alert('Permissão para acessar a galeria é necessária!');
       return;
     }
@@ -62,17 +83,25 @@ const ProfileScreen = () => {
     });
 
     if (!result.canceled) {
-      setPhotoURL(result.assets[0].uri);
+      const response = await fetch(result.assets[0].uri);
+      const blob = await response.blob();
+
+      const storageRef = ref(getStorage(), `profileImages/${user.uid}`);
+      const uploadTask = await uploadBytes(storageRef, blob);
+
+      const downloadURL = await getDownloadURL(uploadTask.ref);
+      setPhotoURL(downloadURL); // Define a URL da imagem no estado
     }
   };
 
+  // Excluir conta
   const deleteAccount = async () => {
     try {
       await deleteDoc(doc(db, 'usuarios', user.uid));
       await user.delete();
       navigation.replace('Splash');
     } catch (error) {
-      console.error('Erro ao excluir conta: ', error);
+      console.error('Erro ao excluir conta:', error);
       alert('Erro ao excluir a conta.');
     }
   };
@@ -91,7 +120,7 @@ const ProfileScreen = () => {
 
   const closeSuccessModal = () => {
     setShowSuccessModal(false);
-    navigation.navigate('Profile'); // Volta para a página de Profile
+    navigation.navigate('Profile');
   };
 
   if (isConfirmingDelete) {
@@ -134,9 +163,8 @@ const ProfileScreen = () => {
         <TextInput
           placeholder="Email"
           value={email}
-          onChangeText={setEmail}
           style={styles.input}
-          keyboardType="email-address"
+          editable={false} // Impede edição direta do email
         />
 
         <TouchableOpacity onPress={updateProfile} style={styles.saveButton}>
@@ -152,11 +180,7 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         {/* Modal de Sucesso */}
-        <Modal
-          transparent={true}
-          visible={showSuccessModal}
-          animationType="slide"
-        >
+        <Modal transparent={true} visible={showSuccessModal} animationType="slide">
           <View style={styles.modalBackground}>
             <View style={styles.modalContainer}>
               <Text style={styles.modalText}>Perfil atualizado com sucesso!</Text>
@@ -170,7 +194,6 @@ const ProfileScreen = () => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   scrollContainer: {
     padding: 20,
