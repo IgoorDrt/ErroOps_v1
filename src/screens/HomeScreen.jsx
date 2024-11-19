@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  Dimensions,
+} from 'react-native';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../config/firebase';
 import { useNavigation } from '@react-navigation/native';
@@ -32,7 +41,6 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
-    // Simula busca de erros populares
     const fetchPopularErrors = () => {
       const errors = [
         { id: '1', name: 'Erro de Sintaxe', description: 'Um erro causado por digitação incorreta no código.' },
@@ -48,13 +56,13 @@ const HomeScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Saudação */}
         <View style={styles.header}>
           <Text style={styles.welcomeMessage}>Olá, {userName}!</Text>
-          <Text style={styles.subtitle}>Estamos felizes em ter você aqui. Explore nossos recursos abaixo.</Text>
+          <Text style={styles.subtitle}>
+            Estamos felizes em ter você aqui. Explore nossos recursos abaixo.
+          </Text>
         </View>
 
-        {/* Seção de Erros Populares */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Erros Populares</Text>
           <FlatList
@@ -71,35 +79,44 @@ const HomeScreen = () => {
           />
         </View>
 
-        {/* Card sobre a empresa */}
         <View style={styles.infoCard}>
-          <Image source={require('../../assets/image.png')} style={styles.companyImage} />
+          <Image
+            source={require('../../assets/image.png')}
+            style={styles.companyImage}
+          />
           <View style={styles.companyInfo}>
             <Text style={styles.cardTitle}>Sobre a ErrOops</Text>
             <Text style={styles.companyText}>
-              A ErrOops é sua parceira para resolver problemas de código. Descubra soluções práticas, aprimore suas habilidades e junte-se à nossa comunidade!
+              A ErrOops é sua parceira para resolver problemas de código. Descubra soluções práticas, aprimore suas
+              habilidades e junte-se à nossa comunidade!
             </Text>
           </View>
         </View>
 
-        {/* Card sobre a equipe */}
         <View style={styles.infoCard}>
-          <Image source={require('../../assets/team.png')} style={styles.companyImage} />
+          <Image
+            source={require('../../assets/team.png')}
+            style={styles.companyImage}
+          />
           <View style={styles.companyInfo}>
             <Text style={styles.cardTitle}>Nossa Equipe</Text>
             <Text style={styles.companyText}>
-              Trabalhamos juntos para compartilhar conhecimentos e oferecer suporte que facilita sua jornada na programação.
+              Trabalhamos juntos para compartilhar conhecimentos e oferecer suporte que facilita sua jornada na
+              programação.
             </Text>
           </View>
         </View>
 
-        {/* Card sobre a comunidade */}
         <View style={styles.infoCard}>
-          <Image source={require('../../assets/img33.png')} style={styles.companyImage} />
+          <Image
+            source={require('../../assets/img33.png')}
+            style={styles.companyImage}
+          />
           <View style={styles.companyInfo}>
             <Text style={styles.cardTitle}>Comunidade ErrOops</Text>
             <Text style={styles.companyText}>
-              Compartilhe seus erros e obtenha ajuda de outros programadores. Juntos, podemos aprender e resolver problemas!
+              Compartilhe seus erros e obtenha ajuda de outros programadores. Juntos, podemos aprender e resolver
+              problemas!
             </Text>
             <TouchableOpacity
               style={styles.button}
@@ -114,7 +131,7 @@ const HomeScreen = () => {
   );
 };
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   scrollContainer: {
@@ -122,43 +139,42 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 15,
+    padding: width * 0.04,
     backgroundColor: '#f4f4f4',
   },
   header: {
-    marginBottom: 20,
+    marginBottom: height * 0.02,
     alignItems: 'center',
   },
   welcomeMessage: {
-    fontSize: 28,
+    fontSize: width * 0.07,
     fontWeight: 'bold',
     color: '#8a0b07',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: height * 0.01,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: width * 0.04,
     color: '#666',
     textAlign: 'center',
-    marginHorizontal: 20,
+    marginHorizontal: width * 0.05,
   },
   sectionContainer: {
-    marginBottom: 20,
+    marginBottom: height * 0.03,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: width * 0.05,
     fontWeight: 'bold',
     color: '#8a0b07',
-    marginBottom: 10,
-    textAlign: 'left',
+    marginBottom: height * 0.01,
   },
   card: {
     backgroundColor: '#fff',
-    padding: 15,
+    padding: width * 0.04,
     borderRadius: 10,
-    marginRight: 15,
+    marginRight: width * 0.03,
     width: width * 0.7,
-    height: width * 0.4,
+    height: height * 0.2,
     elevation: 4,
     shadowColor: '#000',
     shadowOpacity: 0.1,
@@ -167,23 +183,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 18,
+    fontSize: width * 0.045,
     fontWeight: 'bold',
     color: '#8a0b07',
-    marginBottom: 5,
+    marginBottom: height * 0.005,
     textAlign: 'center',
   },
   cardDescription: {
-    fontSize: 14,
+    fontSize: width * 0.035,
     color: '#666',
     textAlign: 'center',
   },
   infoCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    padding: 20,
+    padding: width * 0.05,
     borderRadius: 10,
-    marginBottom: 20,
+    marginBottom: height * 0.03,
     elevation: 3,
     shadowColor: '#000',
     shadowOpacity: 0.2,
@@ -191,30 +207,30 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   companyImage: {
-    width: 100,
-    height: 100,
+    width: width * 0.25,
+    height: width * 0.25,
     borderRadius: 12,
-    marginRight: 15,
+    marginRight: width * 0.03,
   },
   companyInfo: {
     flex: 1,
   },
   companyText: {
-    fontSize: 14,
+    fontSize: width * 0.035,
     color: '#555',
     textAlign: 'justify',
-    marginBottom: 10,
+    marginBottom: height * 0.01,
   },
   button: {
     backgroundColor: '#8a0b07',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.04,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: width * 0.04,
     fontWeight: 'bold',
   },
 });
