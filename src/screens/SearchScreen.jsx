@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView, Dimensions } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -12,7 +13,7 @@ const firebaseConfig = {
   projectId: "erroops-93c8a",
   storageBucket: "erroops-93c8a.appspot.com",
   messagingSenderId: "694707365976",
-  appId: "1:694707365976:web:440ace5273d2c0aa4c022d"
+  appId: "1:694707365976:web:440ace5273d2c0aa4c022d",
 };
 
 // Inicializa o Firebase
@@ -24,7 +25,7 @@ const SearchScreen = () => {
   const [results, setResults] = useState([]);
   const [suggestedErrors, setSuggestedErrors] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [copiedTextId, setCopiedTextId] = useState(null); // Para rastrear o ID do texto copiado
+  const [copiedTextId, setCopiedTextId] = useState(null);
   const navigation = useNavigation();
 
   const fetchRandomErrors = async () => {
@@ -76,19 +77,21 @@ const SearchScreen = () => {
     }
   };
 
-  const copyToClipboard = (text, id) => {
-    Clipboard.setString(text);
-    setCopiedTextId(id); // Define o ID do texto copiado para atualizar a cor do ícone
-    Alert.alert("Copiado", "A mensagem foi copiada para a área de transferência.");
-
-    // Restaura a cor original após um tempo
-    setTimeout(() => setCopiedTextId(null), 2000);
+  const copyToClipboard = async (text, id) => {
+    try {
+      await Clipboard.setStringAsync(text);
+      setCopiedTextId(id);
+      Alert.alert("Copiado", "A mensagem foi copiada para a área de transferência.");
+      setTimeout(() => setCopiedTextId(null), 2000);
+    } catch (error) {
+      console.error("Erro ao copiar o texto: ", error);
+      Alert.alert("Erro", "Não foi possível copiar o texto.");
+    }
   };
 
   const renderResult = ({ item }) => (
     <View style={styles.resultBox}>
       <Text style={styles.errorName}>{item.nome || 'Nome não disponível'}</Text>
-      
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Explicação:</Text>
         <View style={styles.textContainer}>
@@ -98,7 +101,6 @@ const SearchScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Soluções:</Text>
         <View style={styles.textContainer}>
@@ -108,7 +110,6 @@ const SearchScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>Exemplos:</Text>
         <View style={styles.textContainer}>
@@ -155,124 +156,138 @@ const SearchScreen = () => {
         renderItem={renderResult}
         keyExtractor={(item) => item.id}
         style={styles.resultList}
-        scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
+        scrollEnabled={false}
       />
     </ScrollView>
   );
 };
 
+const { width, height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingHorizontal: width * 0.05,
+    paddingBottom: height * 0.02,
     backgroundColor: '#fff',
   },
   title: {
-    fontSize: 32,
+    fontSize: width * 0.08,
     fontWeight: 'bold',
     color: '#8a0b07',
     textAlign: 'center',
-    marginVertical: 20,
+    marginVertical: height * 0.02,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: width * 0.045,
     color: '#555',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: height * 0.015,
   },
   errorButtons: {
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
+    gap: width * 0.03,
+    marginBottom: height * 0.02,
   },
   errorButton: {
     backgroundColor: '#8a0b07',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 15,
-    marginHorizontal: 5,
-    marginVertical: 5,
+    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.04,
+    borderRadius: width * 0.05,
+    marginHorizontal: width * 0.02,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    alignItems: 'center',
   },
   errorButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: width * 0.035,
   },
   input: {
     borderWidth: 1,
     borderColor: '#8a0b07',
-    padding: 12,
-    marginVertical: 20,
-    borderRadius: 8,
-    fontSize: 16,
+    padding: height * 0.02,
+    marginVertical: height * 0.02,
+    borderRadius: width * 0.03,
+    fontSize: width * 0.04,
     backgroundColor: '#f9f9f9',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 3,
+    color: '#333',
   },
   searchButton: {
     backgroundColor: '#8a0b07',
-    padding: 12,
-    borderRadius: 8,
+    paddingVertical: height * 0.015,
+    borderRadius: width * 0.03,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: height * 0.03,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 4,
   },
   searchButtonText: {
     color: '#fff',
     fontWeight: 'bold',
-    fontSize: 16,
-  },
-  loadingText: {
-    textAlign: 'center',
-    marginVertical: 10,
-    fontSize: 16,
-    color: '#8a0b07',
-  },
-  resultList: {
-    marginTop: 20,
+    fontSize: width * 0.045,
   },
   resultBox: {
-    backgroundColor: '#f4f4f4',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    padding: height * 0.02,
+    borderRadius: width * 0.04,
+    marginBottom: height * 0.025,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
+    borderWidth: 1,
+    borderColor: '#e3e3e3',
   },
   errorName: {
-    fontSize: 20,
+    fontSize: width * 0.05,
     fontWeight: 'bold',
     color: '#8a0b07',
-    marginBottom: 15,
+    marginBottom: height * 0.015,
     textAlign: 'center',
   },
   sectionContainer: {
-    marginBottom: 10,
+    marginBottom: height * 0.02,
   },
   sectionTitle: {
     fontWeight: 'bold',
     color: '#8a0b07',
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: width * 0.045,
+    marginBottom: height * 0.01,
   },
   textContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+    padding: height * 0.015,
+    borderRadius: width * 0.03,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   sectionText: {
     flex: 1,
     color: '#333',
-    fontSize: 15,
-    marginRight: 10,
+    fontSize: width * 0.04,
+    marginRight: width * 0.03,
   },
 });
 

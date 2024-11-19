@@ -56,6 +56,7 @@ const CommunityScreen = ({ navigation }) => {
         }
       });
 
+      // Ordena as postagens do mais recente para o mais antigo
       const errorsCollection = collection(db, 'errors');
       const errorsQuery = query(errorsCollection, orderBy('timestamp', 'desc'));
       const unsubscribeErrors = onSnapshot(errorsQuery, (snapshot) => {
@@ -81,7 +82,7 @@ const CommunityScreen = ({ navigation }) => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Correção aplicada aqui
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
@@ -119,7 +120,7 @@ const CommunityScreen = ({ navigation }) => {
             profileImageUrl: userProfileImageUrl,
             comments: [],
             likes: [],
-            timestamp: Timestamp.now(),
+            timestamp: Timestamp.now(), // Adiciona o timestamp ao criar
           });
           setPostText('');
           setImageUri(null);
@@ -251,7 +252,6 @@ const CommunityScreen = ({ navigation }) => {
           renderItem={renderError}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.errorList}
-          scrollEnabled={false}
         />
       </ScrollView>
 
@@ -271,13 +271,6 @@ const CommunityScreen = ({ navigation }) => {
           </View>
         </Modal>
       )}
-
-      <TouchableOpacity
-        style={styles.chatButton}
-        onPress={() => navigation.navigate('SearchChatScreen')}
-      >
-        <MaterialIcons name="chat" size={30} color="#fff" />
-      </TouchableOpacity>
     </View>
   );
 };
