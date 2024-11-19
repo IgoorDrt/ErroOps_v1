@@ -271,6 +271,12 @@ const CommunityScreen = ({ navigation }) => {
           </View>
         </Modal>
       )}
+      <TouchableOpacity
+        style={styles.chatButton}
+        onPress={() => navigation.navigate('SearchChatScreen')}
+      >
+        <MaterialIcons name="chat" size={30} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 };
