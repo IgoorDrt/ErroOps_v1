@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, Linking, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import * as MailComposer from 'expo-mail-composer';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,29 +7,23 @@ import { Ionicons } from '@expo/vector-icons';
 const ContatoScreen = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
   const navigation = useNavigation();
 
   const sendEmail = async () => {
-    if (Platform.OS === 'web') {
-      const mailtoUrl = `mailto:bolivia2steps@gmail.com?subject=${encodeURIComponent(
-        'Contato pelo Aplicativo'
-      )}&body=${encodeURIComponent(`Mensagem de: ${email}\n\n${message}`)}`;
-      Linking.openURL(mailtoUrl).catch(() =>
-        alert('Erro ao tentar abrir o cliente de e-mail.')
-      );
-    } else {
-      const isAvailable = await MailComposer.isAvailableAsync();
-      if (isAvailable) {
-        MailComposer.composeAsync({
-          recipients: ['bolivia2steps@gmail.com'],
-          subject: 'Contato pelo Aplicativo',
-          body: `Mensagem de: ${email}\n\n${message}`,
+    const isAvailable = await MailComposer.isAvailableAsync();
+    if (isAvailable) {
+      MailComposer.composeAsync({
+        recipients: ['bolivia2steps@gmail.com'],
+        subject: 'Contato pelo Aplicativo',
+        body: `Mensagem de: ${email}\n\n${message}`,
+      })
+        .then(() => {
+          setSuccessModalVisible(true); // Mostra o modal ao enviar com sucesso
         })
-          .then(() => alert('E-mail enviado com sucesso!'))
-          .catch(() => alert('Erro ao enviar o e-mail.'));
-      } else {
-        alert('O envio de e-mail não está disponível no dispositivo.');
-      }
+        .catch(() => alert('Erro ao enviar o e-mail.'));
+    } else {
+      alert('O envio de e-mail não está disponível no dispositivo.');
     }
   };
 
@@ -69,6 +63,21 @@ const ContatoScreen = () => {
           <Text style={styles.buttonText}>Enviar</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal de sucesso */}
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={styles.modalContainer}>
+          <View style={styles.successBox}>
+            <Text style={styles.successText}>E-mail enviado com sucesso!</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={styles.closeButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -131,6 +140,35 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#FFF',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBox: {
+    backgroundColor: '#FFF',
+    padding: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  successText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#8a0b07',
+    marginBottom: 10,
+  },
+  closeButton: {
+    backgroundColor: '#8a0b07',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: '#FFF',
+    fontSize: 14,
     fontWeight: 'bold',
   },
 });

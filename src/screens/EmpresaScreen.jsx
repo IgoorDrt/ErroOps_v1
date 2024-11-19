@@ -66,6 +66,29 @@ const EmpresaScreen = ({ navigation }) => {
     }
   };
 
+  const formatTimeSince = (timestamp) => {
+    if (!timestamp) return 'Data desconhecida';
+    const now = new Date();
+    const postDate = timestamp.toDate(); // Converte o Firestore.Timestamp para um objeto Date
+    const diffInMs = now - postDate;
+    const diffInSeconds = Math.floor(diffInMs / 1000);
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInSeconds < 60) {
+      return `${diffInSeconds} s atrás`;
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} min atrás`;
+    } else if (diffInHours < 24) {
+      return `${diffInHours} h atrás`;
+    } else if (diffInDays < 7) {
+      return `${diffInDays} d atrás`;
+    } else {
+      return postDate.toLocaleDateString(); // Exibe a data completa se for mais de uma semana atrás
+    }
+  };
+
   const renderPost = ({ item }) => {
     const userLiked = item.likes?.includes(userEmail);
 
@@ -73,7 +96,12 @@ const EmpresaScreen = ({ navigation }) => {
       <View style={styles.postBox}>
         <View style={styles.userHeader}>
           <Image source={{ uri: item.profileImageUrl }} style={styles.profileImage} />
-          <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
+          <View style={styles.userInfo}>
+            <View style={styles.userRow}>
+              <Text style={styles.username}>{item.email || 'Usuário desconhecido'}</Text>
+              <Text style={styles.postTime}> - {formatTimeSince(item.timestamp)}</Text>
+            </View>
+          </View>
         </View>
 
         {item.imageUrl && (
@@ -94,7 +122,10 @@ const EmpresaScreen = ({ navigation }) => {
             <Text style={styles.likeCount}>{item.likes?.length || 0}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('CommentScreen', { postId: item.id })} style={styles.commentSection}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('CommentScreen', { postId: item.id })}
+            style={styles.commentSection}
+          >
             <MaterialIcons name="chat-bubble-outline" size={24} color="#8a0b07" />
             <Text style={styles.commentCount}>{item.comments?.length || 0}</Text>
           </TouchableOpacity>
@@ -109,7 +140,7 @@ const EmpresaScreen = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Postagens das Empresas</Text>
         <Text style={styles.subtitle}>Veja e curta postagens recentes das empresas parceiras.</Text>
-
+  
         <FlatList
           data={posts}
           renderItem={renderPost}
@@ -117,7 +148,7 @@ const EmpresaScreen = ({ navigation }) => {
           contentContainerStyle={styles.postList}
           scrollEnabled={false} // Desativa a rolagem interna do FlatList para evitar conflito
         />
-
+  
         {selectedImage && (
           <Modal transparent={true} visible={!!selectedImage} onRequestClose={() => setSelectedImage(null)}>
             <View style={styles.modalContainer}>
@@ -130,16 +161,19 @@ const EmpresaScreen = ({ navigation }) => {
             </View>
           </Modal>
         )}
-
-        {userAuth === 2 && (
+      </ScrollView>
+  
+      {/* Botão posicionado para se mover junto com o conteúdo */}
+      {userAuth === 2 && (
+        <View style={styles.addButtonContainer}>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate('PostagemScreen')}
           >
             <MaterialIcons name="business" size={40} color="#fff" />
           </TouchableOpacity>
-        )}
-      </ScrollView>
+        </View>
+      )}
     </View>
   );
 };
@@ -184,19 +218,33 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginRight: 10,
   },
+  userInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  userRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap', // Ajusta em telas pequenas
+  },
   username: {
     fontWeight: 'bold',
     color: '#8a0b07',
+    fontSize: 14,
   },
-  postText: {
-    color: '#333',
-    marginVertical: 10,
+  postTime: {
+    fontSize: 12,
+    color: '#666',
   },
   postImage: {
     width: '100%',
     height: 200,
     marginBottom: 10,
     borderRadius: 10,
+  },
+  postText: {
+    color: '#333',
+    marginVertical: 10,
   },
   actionRow: {
     flexDirection: 'row',
@@ -251,10 +299,16 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  addButton: {
+  postList: {
+    paddingBottom: 80, // Adiciona espaço para o botão não sobrepor o conteúdo
+  },
+  addButtonContainer: {
     position: 'absolute',
     bottom: 20,
     right: 20,
+    zIndex: 10, // Garante que o botão fique acima do conteúdo
+  },
+  addButton: {
     backgroundColor: '#8a0b07',
     padding: 15,
     borderRadius: 50,

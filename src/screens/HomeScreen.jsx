@@ -6,7 +6,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState('Usuário');
   const [popularErrors, setPopularErrors] = useState([]);
 
   useEffect(() => {
@@ -32,6 +32,7 @@ const HomeScreen = () => {
   }, []);
 
   useEffect(() => {
+    // Simula busca de erros populares
     const fetchPopularErrors = () => {
       const errors = [
         { id: '1', name: 'Erro de Sintaxe', description: 'Um erro causado por digitação incorreta no código.' },
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#8a0b07', // Cor ajustada
+    color: '#8a0b07',
     marginBottom: 5,
     textAlign: 'center',
   },

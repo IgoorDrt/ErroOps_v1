@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Image, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { getFirestore, addDoc, collection } from 'firebase/firestore';
+import { getFirestore, addDoc, collection, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp } from 'firebase/app';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { doc, getDoc } from 'firebase/firestore';
 
 // Configuração do Firebase
 const firebaseConfig = {
@@ -78,7 +77,7 @@ const PostagemScreen = ({ navigation }) => {
         imageUrl = await getDownloadURL(imageRef);
       }
   
-      // Adiciona o documento à coleção 'posts' com a URL da imagem de perfil do usuário
+      // Adiciona o documento à coleção 'posts' com a URL da imagem de perfil e timestamp
       await addDoc(collection(db, 'posts'), {
         caption: caption,
         imageUrl: imageUrl,
@@ -86,6 +85,7 @@ const PostagemScreen = ({ navigation }) => {
         likes: [],
         comments: [],
         profileImageUrl: profileImageUrl, // Adiciona a URL da imagem de perfil do usuário
+        timestamp: Timestamp.now(), // Adiciona o timestamp da postagem
       });
   
       setIsUploading(false);
